@@ -1,0 +1,290 @@
+---
+  AWSTemplateFormatVersion: '2010-09-09'
+  Description: BigID IAM roles
+  Metadata:
+      AWS::CloudFormation::Interface:
+        ParameterGroups:
+          - Label:
+              default: BigID SaaS Configuration
+            Parameters:
+              - ExternalID
+              - RoleName
+          - Label:
+              default: BigID Data discovery capabilities
+            Parameters:
+              - Athena
+              - DynamoDB
+              - Kinesis
+              - RDS
+              - Redshift
+              - S3
+          - Label:
+              default: Remote scanners (optional)
+            Parameters:
+              - AccountForRemoteScanners
+              - ScannerRoleName
+          - Label:
+              default: Advanced Configuration
+            Parameters:
+              - PermissionsValidation
+              - ConfigAggregatorAccount
+              - BigIDSaaSAccount
+              - AlternativeAccountToTrust
+        ParameterLabels:
+          AccountForRemoteScanners:
+              default: "Customer deployed scanners account"
+          ConfigAggregatorAccount:
+            default: "AWS Account number for AWS Config aggregator"
+          BigIDSaaSAccount:
+            default: "BigID SaaS Account"
+          AlternativeAccountToTrust:
+            default: "Alternative SaaS Account to trust"
+  Parameters:
+### SaaS conf
+    ExternalID:
+      Description: ExternalID value as shown in the BigID Administration -> Advanced Tools -> Service Configuration -> SAAS_EXTERNAL_ID variable value
+      Type: String
+      AllowedPattern: '\w{8}-\w{4}-\w{4}-\w{4}-\w{12}'
+    RoleName:
+      Description: BigID Role name. Must be available in all AWS Accounts where this stack is deployed.
+      Type: String
+      Default: BigID-DataDiscovery
+### data discovery section
+    Athena:
+      Description: Enable BigID to discover data in Athena.
+      Type: String
+      Default: true
+      AllowedValues: [true, false]
+    DynamoDB:
+      Description: Enable BigID to discover data in DynamoDB.
+      Type: String
+      Default: true
+      AllowedValues: [true, false]
+    Kinesis:
+      Description: Enable BigID to discover data in Kinesis.
+      Type: String
+      Default: true
+      AllowedValues: [true, false]
+    RDS:
+      Description: Enable BigID to discover data in RDS.
+      Type: String
+      Default: true
+      AllowedValues: [true, false]
+    Redshift:
+      Description: Enable BigID to discover data in Redshift.
+      Type: String
+      Default: true
+      AllowedValues: [true, false]
+    S3:
+      Description: Enable BigID to discover data in S3.
+      Type: String
+      Default: true
+      AllowedValues: [true, false]
+### Remote Scanners
+    AccountForRemoteScanners:
+      Description: (optional), account for a remote scanner role
+      Type: String
+      Default: ""
+      AllowedPattern: '^$|(^\d{12}$)'
+    ScannerRoleName:
+      Description: (optional) BigID Remote scanner role name. Only deployed in the Customer deployed scanners account
+      Type: String
+      Default: BigID-RemoteScanner
+### Advanced section
+    PermissionsValidation:
+      Description: Enable BigID to check its own permissions (smallID onboarding)
+      Type: String
+      Default: false
+      AllowedValues: [true, false]
+    ConfigAggregatorAccount:
+      Description: Account where to find the AWS Config aggregator
+      Default: ""
+      Type: String
+      AllowedPattern: '^$|(^\d{12}$)'
+    BigIDSaaSAccount:
+      Description: BigID SaaS Account to trust. Do not modify it unless explicitely asked to.
+      Default: "prod"
+      Type: String
+      AllowedValues: ["prod", "alternative"]
+    AlternativeAccountToTrust:
+      Description: Alternative account number where BigID is deployed. You need to se (optional)
+      Default: ""
+      Type: String
+      AllowedPattern: '^$|(^\d{12}$)'
+  Conditions:
+    IncludeAthena:   !Equals [!Ref Athena, true ]
+    IncludeDynamoDB: !Equals [!Ref DynamoDB , true ]
+    IncludeKinesis:  !Equals [!Ref Kinesis, true]
+    IncludeRDS:      !Equals [!Ref RDS, true ]
+    IncludeRedshift: !Equals [!Ref Redshift, true]
+    IncludeS3:       !Equals [!Ref S3, true ]
+    IncludeSelfPerm: !Equals [!Ref PermissionsValidation, true ]
+    IncludeConfAgg:  !Equals [!Ref ConfigAggregatorAccount, !Ref AWS::AccountId ]
+    AllowRemoteScannerToAssumeRole: !Not [!Equals [!Ref AccountForRemoteScanners, "" ]]
+    ISRemoteScannerAccount: !Equals [!Ref AccountForRemoteScanners, !Ref AWS::AccountId ]
+    UseAlternativeAccount: !Equals [!Ref BigIDSaaSAccount, alternative ]
+  Outputs:
+    BigIDRoleARN:
+      Description: BigIDRole to copy to BigID UI.
+      Value: !GetAtt BigIDRole.Arn
+  Resources:
+    BigIDRemoteScannerRole:
+      Type: AWS::IAM::Role
+      Condition: ISRemoteScannerAccount
+      Properties:
+        RoleName: !Ref ScannerRoleName
+        Description: A role to attach to a remote scanner so it can do cross account assume role to BigIDDataDiscovery role.
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service :
+                - eks.amazonaws.com
+                - ec2.amazonaws.com
+            Action: "sts:AssumeRole"
+        ManagedPolicyArns:
+          - !Ref BigIDRemoteScannerPolicy
+    BigIDRemoteScannerPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Condition: ISRemoteScannerAccount
+      Properties:
+        Description: BigID scanner policy to assume roles.
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+              Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource:
+                - !Join [ "/", ["arn:aws:iam::*:role", !Ref RoleName ] ]
+    BigIDRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Ref RoleName
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub
+                - "arn:aws:iam::${SaaSAccount}:root"
+                - SaaSAccount: !If [UseAlternativeAccount, !Ref AlternativeAccountToTrust, "835626702473"]
+            Action: "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                "sts:externalId": !Ref ExternalID
+          - !If
+            - AllowRemoteScannerToAssumeRole
+            - Effect: Allow
+              Principal:
+                AWS:
+                  - !Sub "arn:aws:iam::${AccountForRemoteScanners}:root"
+              Action: "sts:AssumeRole"
+            - !Ref AWS::NoValue
+        ManagedPolicyArns:
+          - !Ref BigIDDiscoveryPolicy
+    BigIDDiscoveryPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - !If
+              - IncludeSelfPerm
+              - Sid: 'BigIDCheckPermissions'
+                Effect: 'Allow'
+                Resource: '*'
+                Action:
+                  - 'iam:GetUser' #to be modified as we now do roles
+                  - 'iam:SimulatePrincipalPolicy'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeAthena
+              - Sid: 'BigIDScanAthena'
+                Effect: 'Allow'
+                Resource: '*'
+                Action:
+                  - 'athena:GetDataCatalog'
+                  - 'athena:GetQueryResults'
+                  - 'athena:GetTableMetadata'
+                  - 'athena:ListDataCatalogs'
+                  - 'athena:ListDatabases'
+                  - 'athena:ListTableMetadata'
+                  - 'glue:GetDatabases'
+                  - 'glue:GetTables'
+                  - 's3:ListAllMyBuckets'
+                  - 's3:CreateBucket'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:AbortMultipartUpload'
+                  - 's3:ListMultipartUploadParts'
+                  - 's3:PutObject'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeDynamoDB
+              - Sid: 'BigIDScanDynamo'
+                Effect: 'Allow'
+                Action:
+                  - 'dynamodb:ListTables'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                Resource: '*'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeKinesis
+              - Sid: 'BigIDScanKinesis'
+                Effect: 'Allow'
+                Action:
+                  - 'kinesis:ListStreams'
+                  - 'kinesis:DescribeStream'
+                  - 'kinesis:ListShards'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:CreateTable'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:Scan'
+                Resource: '*'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeRDS
+              - Sid: 'BigIDScanRDS'
+                Effect: 'Allow'
+                Action:
+                  - 'rds:DescribeDBInstances'
+                Resource: '*'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeRedshift
+              - Sid: 'BigIDScanRedshift'
+                Effect: 'Allow'
+                Action:
+                  - 'redshift:DescribeClusters'
+                  - 'redshift:DescribeClusterDbRevisions'
+                Resource: '*'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeS3
+              - Sid: 'BigIDScanS3'
+                Effect: 'Allow'
+                Action:
+                  - 's3:ListAllMyBuckets'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetBucketAcl'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 'cloudwatch:GetMetricStatistics'
+                  - 'cloudwatch:ListMetrics'
+                Resource: '*'
+              - !Ref AWS::NoValue
+            - !If
+              - IncludeConfAgg
+              - Sid: 'BigIDConsumeConfigAggregator'
+                Effect: 'Allow'
+                Action:
+                  - 'config:SelectAggregateResourceConfig'
+                Resource: '*'
+              - !Ref AWS::NoValue

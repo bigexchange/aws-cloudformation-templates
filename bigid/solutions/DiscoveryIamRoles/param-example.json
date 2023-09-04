@@ -1,0 +1,51 @@
+[
+  {
+    "ParameterKey": "Athena",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "DynamoDB",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "Kinesis",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "RDS",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "Redshift",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "S3",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "ExternalID",
+    "ParameterValue": "90a83f20-d629-448e-a60e-ff33c05fa9f0"
+  },
+  {
+    "ParameterKey": "RoleName",
+    "ParameterValue": "BigID-testclirole"
+  },
+  {
+    "ParameterKey": "PermissionsValidation",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "AccountForRemoteScanners",
+    "ParameterValue": "083559066303"
+  },
+  {
+    "ParameterKey": "ScannerRoleName",
+    "ParameterValue": "BigIDScannerRole-testclirole"
+  },
+  {
+    "ParameterKey": "ConfigAggregatorAccount",
+    "ParameterValue": "083559066303"
+  }
+]
+
