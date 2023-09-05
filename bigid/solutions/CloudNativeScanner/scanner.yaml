@@ -1,0 +1,265 @@
+AWSTemplateFormatVersion: 2010-09-09
+Conditions:
+  IsNer: !Equals
+    - !Ref NerEnabled
+    - true
+  IsScannerOnly: !Equals
+    - !Ref NerEnabled
+    - false
+Parameters:
+  SubnetName:
+    Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
+    Type: String
+    Default: ""
+  SecurityGroupName:
+    Description: >-
+      Security Group Name for ECS Task Definition, please replace with the
+      proper Security Group. Please also make sure the SG is in the same subnet
+    Type: String
+    Default: ""
+  ImageRepository:
+    Description: Default Image Repository for the ECS Scanner
+    Type: String
+    Default: ""
+  ImageTagVersion:
+    Type: String
+    Description: Setting the tag version of the scanner
+    Default: ""
+  NerEnabled:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Description: Enable NER
+    Default: false
+  ScannerCPU:
+    Type: Number
+    Description: >-
+      Scanner CPU Please use the increments provided by Amazon
+      "256,512,1024,2048..etc"
+    Default: 8192
+  ScannerMemory:
+    Type: Number
+    Description: >-
+      Scanner Memory Please use the increments provided by Amazon
+      "256,512,1024,2048..etc"
+    Default: 16384
+  ScannerHostName:
+    Type: String
+    Description: >-
+      Scanner Host Name
+    Default: remote-scanner
+  ScannerGroupName:
+    Type: String
+    Description: >-
+      Scanner Group Name
+    Default: remote-scanner
+  NERCPU:
+    Type: Number
+    Description: >-
+      Scanner CPU Please use the increments provided by Amazon
+      "256,512,1024,2048..etc"
+    Default: 4096
+  NERMemory:
+    Type: Number
+    Description: >-
+      NER Memory Please use the increments provided by Amazon
+      "256,512,1024,2048..etc"
+    Default: 8192
+  BigIDRefreshToken:
+    Type: String
+    Description: BigID Refresh Token
+    Default: ""
+  BigIDUIHostname:
+    Type: String
+    Description: BigID Tenant Host Name
+    Default: ""
+
+Resources:
+  ECSCluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: BigIDScannerCluster
+  ScannerECSTaskDefinition:
+    Type: "AWS::ECS::TaskDefinition"
+    Condition: IsScannerOnly
+    DependsOn: ECSIAMRole
+    Properties:
+      ContainerDefinitions:
+        - Name: bigid-scanner
+          Essential: true
+          Image: !Sub "${ImageRepository}/bigid-scanner:release-${ImageTagVersion}"
+          Environment:
+            - Name: BIGID_REFRESH_TOKEN
+              Value: !Sub "${BigIDRefreshToken}"
+            - Name: BIGID_UI_HOST_EXT
+              Value: !Sub "${BigIDUIHostname}"
+            - Name: BIGID_UI_PORT_EXT
+              Value: 443
+            - Name: DISABLE_NFS_AUTOMOUNT
+              Value: true
+            - Name: IS_REMOTE_SCANNER
+              Value: true
+            - Name: SCANNER_HOST_NAME
+              Value: !Sub "${ScannerHostName}"
+            - Name: SCANNER_GROUP_NAME
+              Value: !Sub "${ScannerGroupName}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: scanner-container
+              awslogs-create-group: true
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: scannerlogs
+          PortMappings:
+            - ContainerPort: 9999
+              HostPort: 9999
+              Protocol: tcp
+      Cpu: !Sub "${ScannerCPU}"
+      Memory: !Sub "${ScannerMemory}"
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref ECSIAMRole
+      RequiresCompatibilities:
+        - FARGATE
+  ScannerWithNerECSTaskDefinition:
+    Type: "AWS::ECS::TaskDefinition"
+    Condition: IsNer
+    DependsOn: ECSIAMRole
+    Properties:
+      ExecutionRoleArn: !Ref ECSIAMRole
+      ContainerDefinitions:
+        - Name: bigid-scanner
+          Essential: true
+          Image: !Sub "${ImageRepository}/bigid-scanner:release-${ImageTagVersion}"
+          Environment:
+            - Name: BIGID_REFRESH_TOKEN
+              Value: !Sub "${BigIDRefreshToken}"
+            - Name: BIGID_UI_HOST_EXT
+              Value: !Sub "${BigIDUIHostname}"
+            - Name: BIGID_UI_PORT_EXT
+              Value: 443
+            - Name: DISABLE_NFS_AUTOMOUNT
+              Value: true
+            - Name: IS_REMOTE_SCANNER
+              Value: true
+            - Name: SCANNER_HOST_NAME
+              Value: !Sub "${ScannerHostName}"
+            - Name: SCANNER_GROUP_NAME
+              Value: !Sub "${ScannerGroupName}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: scanner-container
+              awslogs-create-group: true
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: scannerlogs
+          PortMappings:
+            - ContainerPort: 9999
+              HostPort: 9999
+              Protocol: tcp
+        - Name: bigid-scanner-ner
+          Essential: true
+          Image: !Sub "${ImageRepository}/bigid-ner:release-${ImageTagVersion}"
+          Environment:
+            - Name: BIGID_REFRESH_TOKEN
+              Value: !Sub "${BigIDRefreshToken}"
+            - Name: BIGID_UI_HOST_EXT
+              Value: !Sub "${BigIDUIHostname}"
+            - Name: BIGID_UI_PORT_EXT
+              Value: 443
+            - Name: DISABLE_NFS_AUTOMOUNT
+              Value: true
+            - Name: IS_REMOTE_SCANNER
+              Value: true
+            - Name: SCANNER_HOST_NAME
+              Value: !Sub "${ScannerHostName}"
+            - Name: SCANNER_GROUP_NAME
+              Value: !Sub "${ScannerGroupName}"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: scanner-ner-container
+              awslogs-create-group: true
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: scannerlogs
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 8080
+              Protocol: tcp
+      Cpu: !Sub "${ScannerCPU}"
+      Memory: !Sub "${ScannerMemory}"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+  ECSScannerService:
+    Type: "AWS::ECS::Service"
+    Condition: IsScannerOnly
+    Properties:
+      ServiceName: bigid-scanner-service
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Sub "${SecurityGroupName}"
+          Subnets:
+            - !Sub "${SubnetName}"
+      TaskDefinition: !Ref ScannerECSTaskDefinition
+
+  ECSNERService:
+    Condition: IsNer
+    Type: "AWS::ECS::Service"
+    Properties:
+      ServiceName: bigid-scanner-service
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Sub "${SecurityGroupName}"
+          Subnets:
+            - !Sub "${SubnetName}"
+      TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
+
+  ECSIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecsTaskExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+  RolePolicies:
+    Type: AWS::IAM::Policy
+    DependsOn: ECSIAMRole
+    Properties:
+      PolicyName: ecsTaskExecutionPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:CreateLogGroup",
+                "logs:DescribeLogStreams",
+                "iam:DeleteRolePolicy",
+              ]
+            Resource: "*"
+      Roles:
+        - !Ref ECSIAMRole
