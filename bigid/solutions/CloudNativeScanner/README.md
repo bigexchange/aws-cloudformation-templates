@@ -16,7 +16,7 @@ Using the cloud formation template provided, kindly navigate to the Cloudformati
 
 ### Creating a Stack
 
-**Cloudformation** **>** **Stack** **>** **Create a New Stack**
+**Cloudformation** **`** **Stack** **`** **Create a New Stack**
 
 ![image](https://github.com/bigexchange/aws-cloudformation-templates/assets/34100385/28b47a8c-e271-4fa0-97b4-4aded668195e)
 
@@ -30,9 +30,9 @@ Upload the Cloudformation Template, and input the following variables below.
 
 | Key               | Value                                        | Type   |
 |-------------------|----------------------------------------------|--------|
-| BigIDRefreshToken | <TOKEN>                                      | String |
-| BigIDUIHostname   | <customer.bigid.cloud>                       | String |
-| ImageRepository   | <1234567890.dkr.ecr.us-east-1.amazonaws.com> | String |
-| SecurityGroupName | <sg-123456>                                  | String |
-| SubnetName        | <subnet-123456>                              | String |
-| NerEnabled        | false                                        | Bool   |
+| BigIDRefreshToken | `TOKEN`                                      | String |
+| BigIDUIHostname   | `customer.bigid.cloud`                       | String |
+| ImageRepository   | `1234567890.dkr.ecr.us-east-1.amazonaws.com` | String |
+| SecurityGroupName |  `sg-123456`                                  | String |
+| SubnetName        | `subnet-123456`                              | String |
+| NerEnabled        | `false`                                        | Bool   |
