@@ -18,7 +18,8 @@ Using the cloud formation template provided, kindly navigate to the Cloudformati
 
 **Cloudformation** **>** **Stack** **>** **Create a New Stack**
 
-[image]
+![image](https://github.com/bigexchange/aws-cloudformation-templates/assets/34100385/28b47a8c-e271-4fa0-97b4-4aded668195e)
+
 
 Upload the Cloudformation Template, and input the following variables below.
 
