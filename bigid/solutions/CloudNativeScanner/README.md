@@ -16,7 +16,7 @@ Using the cloud formation template provided, kindly navigate to the Cloudformati
 
 ### Creating a Stack
 
-**Cloudformation** **`** **Stack** **`** **Create a New Stack**
+**Cloudformation** ** > ** **Stack** ** > ** **Create a New Stack**
 
 ![image](https://github.com/bigexchange/aws-cloudformation-templates/assets/34100385/28b47a8c-e271-4fa0-97b4-4aded668195e)
 
