@@ -1,7 +1,7 @@
 # Cloud Native scanners on ECS
 
 ## Requirements
- 
+
 
 * BigID Scanner Images Uploaded to the ECR account where the cluster will be deployed
 
@@ -33,6 +33,7 @@ Upload the Cloudformation Template, and input the following variables below.
 | BigIDRefreshToken | `TOKEN`                                      | String |
 | BigIDUIHostname   | `customer.bigid.cloud`                       | String |
 | ImageRepository   | `1234567890.dkr.ecr.us-east-1.amazonaws.com` | String |
-| SecurityGroupName |  `sg-123456`                                  | String |
+| ImageTagVersion   | `release-xxx`                                | String |
+| SecurityGroupName | `sg-123456`                                 | String |
 | SubnetName        | `subnet-123456`                              | String |
-| NerEnabled        | `false`                                        | Bool   |
+| NerEnabled        | `false`                                      | Bool   |
