@@ -67,6 +67,7 @@ Parameters:
       "256,512,1024,2048..etc"
     Default: 8192
   BigIDRefreshToken:
+    NoEcho: true
     Type: String
     Description: BigID Refresh Token
     Default: ""
