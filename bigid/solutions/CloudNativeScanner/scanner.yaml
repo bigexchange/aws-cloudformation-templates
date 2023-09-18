@@ -142,6 +142,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "release-${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
