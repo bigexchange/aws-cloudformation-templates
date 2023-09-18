@@ -88,7 +88,7 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-scanner:release-${ImageTagVersion}"
+          Image: !Sub "${ImageRepository}/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -130,7 +130,7 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-scanner:release-${ImageTagVersion}"
+          Image: !Sub "${ImageRepository}/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -143,7 +143,7 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: BIGID_VERSION
-              Value: !Sub "release-${ImageTagVersion}_AWS"
+              Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -161,7 +161,7 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-ner:release-${ImageTagVersion}"
+          Image: !Sub "${ImageRepository}/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
