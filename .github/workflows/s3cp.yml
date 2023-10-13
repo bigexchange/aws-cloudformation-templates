@@ -32,4 +32,4 @@ jobs:
         aws-region: us-east-1
     - name: Copy files to the test website with the AWS CLI
       run: |
-        aws s3 sync bigid/solutions/DiscoveryIamRoles/bigid-saas-roles.yaml s3://bigig-gk-test-temp
+        aws s3 cp bigid/solutions/DiscoveryIamRoles/bigid-saas-roles.yaml s3://bigig-gk-test-temp
