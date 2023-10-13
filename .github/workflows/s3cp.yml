@@ -2,6 +2,10 @@
 
 name: CI
 
+
+env:
+  PROD_AWS_ROLE: ${{ vars.ENV_CONTEXT_VAR }}
+
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
@@ -28,7 +32,7 @@ jobs:
     - name: Configure AWS credentials from Prod account
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: $PROD_AWS_ROLE
+        role-to-assume: ${{env.PROD_AWS_ROLE}}
         aws-region: us-east-1
     - name: Copy scanner.yaml to the production bucket.
       run: |
