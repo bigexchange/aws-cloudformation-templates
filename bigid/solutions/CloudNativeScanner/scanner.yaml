@@ -43,7 +43,7 @@ Parameters:
     Description: >-
       Scanner Memory Please use the increments provided by Amazon
       "256,512,1024,2048..etc"
-    Default: 16384
+    Default: 32768
   ScannerHostName:
     Type: String
     Description: >-
