@@ -75,7 +75,6 @@ Parameters:
     Type: String
     Description: BigID Tenant Host Name
     Default: ""
-
 Resources:
   ECSCluster:
     Type: "AWS::ECS::Cluster"
@@ -89,7 +88,7 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-scanner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -110,7 +109,7 @@ Resources:
             Options:
               awslogs-group: scanner-container
               awslogs-create-group: true
-              awslogs-region: us-east-1
+              awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 9999
@@ -131,7 +130,7 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-scanner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -154,7 +153,7 @@ Resources:
             Options:
               awslogs-group: scanner-container
               awslogs-create-group: true
-              awslogs-region: us-east-1
+              awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 9999
@@ -162,7 +161,7 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-ner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -183,7 +182,7 @@ Resources:
             Options:
               awslogs-group: scanner-ner-container
               awslogs-create-group: true
-              awslogs-region: us-east-1
+              awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 8080
@@ -193,7 +192,7 @@ Resources:
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
       EphemeralStorage:
-      	SizeInGiB: 200
+      SizeInGiB: 200
       RequiresCompatibilities:
         - FARGATE
   ECSScannerService:
@@ -202,7 +201,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 1
+      DesiredCount: 0
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -219,7 +218,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 1
+      DesiredCount: 0
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -268,3 +267,57 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSIAMRole
+
+  ECSScalerLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: ECSScalerLambda
+      PackageType: Image
+      ImageConfig:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/my-ecr-repo:my-image-tag" # Replace with your ECR image URI
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: ECSScalerLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistry_FullAccess
+
+  EventBridgeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: ECSScalerRule
+      ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
+      State: ENABLED # Enable the rule
+      Targets:
+        - Arn: !GetAtt ECSScalerLambda.Arn
+          Id: ECSScalerLambdaTarget
+      # Input transformer to provide the desired JSON parameters
+      InputTransformer:
+        InputPathsMap:
+          refresh_token: !Ref BigIDRefreshToken
+          host_name: !Ref BigIDUIHostname
+          region_name: !Sub ${AWS::Region}
+          cluster_name: !GetAtt ECSCluster.ClusterName # Use the ClusterName attribute of ECSCluster
+        InputTemplate: |
+          {
+            "refresh_token": <refresh_token>,
+            "host_name": <host_name>,
+            "cluster_name": <cluster_name>,
+            "service_name": bigid-scanner-service,
+            "region_name": <region_name>,
+            "desired_count": 3
+          }
