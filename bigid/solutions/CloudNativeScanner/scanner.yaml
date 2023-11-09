@@ -17,10 +17,6 @@ Parameters:
       proper Security Group. Please also make sure the SG is in the same subnet
     Type: String
     Default: ""
-  ImageRepository:
-    Description: Default Image Repository for the ECS Scanner
-    Type: String
-    Default: ""
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
@@ -75,6 +71,10 @@ Parameters:
     Type: String
     Description: BigID Tenant Host Name
     Default: ""
+  ScannerCount:
+    Description: "Desired Scanner Count"
+    Type: String
+    Default: 3
 Resources:
   ECSCluster:
     Type: "AWS::ECS::Cluster"
@@ -201,7 +201,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 0
+      DesiredCount: 1
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -218,7 +218,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 0
+      DesiredCount: 1
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -273,9 +273,16 @@ Resources:
     Properties:
       FunctionName: ECSScalerLambda
       PackageType: Image
-      ImageConfig:
-        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/my-ecr-repo:my-image-tag" # Replace with your ECR image URI
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ecs-scaler-lambda:1.0.0" # Replace with your ECR image URI
       Role: !GetAtt LambdaExecutionRole.Arn
+  LambdaEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ECSScalerLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventBridgeRule.Arn
 
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
@@ -292,9 +299,11 @@ Resources:
               - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
         - arn:aws:iam::aws:policy/AmazonECS_FullAccess
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistry_FullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
 
   EventBridgeRule:
     Type: "AWS::Events::Rule"
@@ -305,19 +314,23 @@ Resources:
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
           Id: ECSScalerLambdaTarget
-      # Input transformer to provide the desired JSON parameters
-      InputTransformer:
-        InputPathsMap:
-          refresh_token: !Ref BigIDRefreshToken
-          host_name: !Ref BigIDUIHostname
-          region_name: !Sub ${AWS::Region}
-          cluster_name: !GetAtt ECSCluster.ClusterName # Use the ClusterName attribute of ECSCluster
-        InputTemplate: |
-          {
-            "refresh_token": <refresh_token>,
-            "host_name": <host_name>,
-            "cluster_name": <cluster_name>,
-            "service_name": bigid-scanner-service,
-            "region_name": <region_name>,
-            "desired_count": 3
-          }
+          InputTransformer:
+            InputTemplate: !Join
+              - ""
+              - - '{"refresh_token":"'
+                - !Ref BigIDRefreshToken
+                - '",'
+                - '"host_name":"'
+                - !Ref BigIDUIHostname
+                - '",'
+                - '"cluster_name":"'
+                - !Ref ECSCluster
+                - '",'
+                - '"service_name":"bigid-scanner-service'
+                - '",'
+                - '"region_name":"'
+                - !Ref "AWS::Region"
+                - '",'
+                - '"desired_count":'
+                - !Ref ScannerCount
+                - "}"
