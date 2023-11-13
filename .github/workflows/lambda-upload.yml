@@ -2,9 +2,9 @@ name: Lambda
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py'
+    branches: [ "BCO-0000-Scanner-scaler-Event-Bridge" ]
+    # paths:
+    #   - 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py'
   workflow_dispatch:
 
 jobs:
