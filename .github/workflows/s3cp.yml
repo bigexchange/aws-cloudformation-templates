@@ -1,12 +1,12 @@
 # AWS Cloudformation Templates Actions
 name: CI
-
-
 # Controls when the workflow will run
 on:
   # Triggers the workflow on pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
+    paths:
+      - 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   deploy:
-    name: Upload to Amazon S3
+    name: Scanner.yaml Copy
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
