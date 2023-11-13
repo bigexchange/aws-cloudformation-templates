@@ -50,7 +50,6 @@ def get_scans_jobs(hostname, system_token):
     headers = {"Authorization": system_token}
 
     response = requests.get(url, headers=headers)
-    pprint(response.json())
     if response.status_code == 200:
         data = response.json()
         return bool(data.get("results"))
