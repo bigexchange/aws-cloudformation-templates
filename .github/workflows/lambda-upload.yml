@@ -2,9 +2,9 @@ name: Lambda
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
     paths:
-      - 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py'
+      - "bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py"
   workflow_dispatch:
 
 jobs:
@@ -29,12 +29,24 @@ jobs:
       - name: Prepare package
         run: |
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          # Deactivate the virtual environment to copy the files
+          deactivate
+          # Create a directory to hold the package if it doesn't already exist
           mkdir -p package
-          cp -R $(ls | grep -v 'package') package/
+          # Copy the Python virtual environment libraries
+          cp -R venv/lib/python3.11/site-packages/* package/
+          # Copy your lambda function code and any other necessary files to the package directory
+          cp ecs_scaler_lambda.py package/
+          # Add any other necessary files to the package directory as needed
+          # Example: cp -R models package/
+          # Change directory to the package directory
           cd package
+          # Zip the contents of the package directory
           zip -r ../ecs-scaler-lambda.zip .
-          echo $PWD
-          ls -alh ../   
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
