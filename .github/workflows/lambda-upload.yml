@@ -2,9 +2,9 @@ name: Lambda
 
 on:
   push:
-    branches: [ "BCO-0000-Scanner-scaler-Event-Bridge" ]
-    # paths:
-    #   - 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py'
+    branches: [ "master" ]
+    paths:
+      - 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py'
   workflow_dispatch:
 
 jobs:
@@ -29,15 +29,18 @@ jobs:
       - name: Prepare package
         run: |
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
-          cp -R ./* package/
+          mkdir -p package
+          cp -R $(ls | grep -v 'package') package/
           cd package
           zip -r ../ecs-scaler-lambda.zip .
-    #   - name: Configure AWS credentials from Prod account
-    #     uses: aws-actions/configure-aws-credentials@v4
-    #     with:
-    #       role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
-    #       aws-region: us-east-1
-    #   - name: Upload Lambda function to S3
-    #     run: |
-    #       cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
-    #       aws s3 cp ecs-scaler-lambda.zip s3://bigid-cloudformation-templates/ecs-scaler-lambda.zip
+          echo $PWD
+          ls -alh ../   
+      - name: Configure AWS credentials from Prod account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
+          aws-region: us-east-1
+      - name: Upload Lambda function to S3
+        run: |
+          cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          aws s3 cp ecs-scaler-lambda.zip s3://bigid-cloudformation-templates/ecs-scaler-lambda.zip

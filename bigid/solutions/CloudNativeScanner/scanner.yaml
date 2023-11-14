@@ -326,6 +326,9 @@ Resources:
                 - '"cluster_name":"'
                 - !Ref ECSCluster
                 - '",'
+                - '"scanner_group":"'
+                - !Ref ScannerGroupName
+                - '",'
                 - '"service_name":"bigid-scanner-service'
                 - '",'
                 - '"region_name":"'

@@ -3,14 +3,14 @@ import requests
 
 
 # Function to get the system token
-def get_token(refresh_token, host_name):
-    # Check if the host_name is set
-    if host_name is None:
-        print("Error: 'host_name' variable is not set")
+def get_token(refresh_token, hostname):
+    # Check if the hostname is set
+    if hostname is None:
+        print("Error: 'hostname' variable is not set")
         return None
 
     # Construct the URL for token retrieval
-    url = f"https://{host_name}/api/v1/refresh-access-token"
+    url = f"https://{hostname}/api/v1/refresh-access-token"
     headers = {"Authorization": refresh_token, "Content-Type": "application/json"}
     # Send a request to obtain the system token
     response = requests.get(url, headers=headers)
@@ -55,19 +55,44 @@ def get_scans_jobs(hostname, system_token):
         return bool(data.get("results"))
     raise Exception(f"Scanner Jobs Return:{response.status_code}")
 
+def get_scanners(system_token,url):
+    headers = {"Authorization": system_token}
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise RuntimeError(f"Recieved invalid status_code {response.status_code}")
+    data = response.json()
+    return data
+
+def iterate_scanners(system_token,hostname,scanner_group):
+    url = f"https://{hostname}/api/v1/scanner-status"
+    scanners=get_scanners(system_token,url)
+    for entry in scanners["data"]:
+        print(type(entry))
+        if entry["scanner_group"] != scanner_group:
+            print(f"Skipping {entry['scanner_group']} scanner group")
+            continue
+        scanner_id = entry["scanner_id"]
+        scanner_status_url = f"{url}/{scanner_id}"
+        scanner_status = get_scanners(system_token,scanner_status_url)
+        running = scanner_status["data"][0].get("running", 0)
+        return running
+
 
 def main(
     refresh_token,
-    host_name,
+    hostname,
     cluster_name,
     service_name,
     desired_count,
     region_name,
+    scanner_group,
 ):
-    system_token = get_token(refresh_token, host_name)
+    system_token = get_token(refresh_token, hostname)
     if system_token:
-        if not get_scans_jobs(host_name, system_token):
-            desired_count = 0
+        jobs = get_scans_jobs(hostname, system_token)
+        running = iterate_scanners(system_token, hostname,scanner_group)
+        if not jobs and not running:
+            desired_count = 1
         # Get scans and scale ECS task definition based on the result
         result = scale_ecs_task_definition(
             cluster_name,
@@ -82,19 +107,21 @@ def main(
 
 # Lambda entry point
 def lambda_handler(event, context):
-    host_name = event.get("host_name")
+    hostname = event.get("host_name")
     refresh_token = event.get("refresh_token")
     cluster_name = event.get("cluster_name")
     service_name = event.get("service_name")
     region_name = event.get("region_name")
     desired_count = event.get("desired_count")
+    scanner_group = event.get("scanner_group")
     result = main(
         refresh_token,
-        host_name,
+        hostname,
         cluster_name,
         service_name,
         desired_count,
         region_name,
+        scanner_group,
     )
     if result is not None:
         # Return a 200 response with a success message
