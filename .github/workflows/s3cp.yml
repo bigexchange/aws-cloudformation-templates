@@ -30,4 +30,4 @@ jobs:
         aws-region: us-east-1
     - name: Copy scanner.yaml to the production bucket.
       run: |
-        aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates
+        aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates  --acl public-read
