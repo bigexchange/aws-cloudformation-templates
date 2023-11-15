@@ -24,7 +24,7 @@ Parameters:
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
-    Default: "release-187.15"
+    Default: ""
   NerEnabled:
     Type: String
     AllowedValues:
