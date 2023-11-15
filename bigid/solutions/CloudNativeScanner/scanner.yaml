@@ -6,6 +6,10 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
+  ShouldAttachManagedPolicy:
+    !And
+      - !Equals [ !Ref AttachManagedPolicy, "true" ]
+      - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
 Parameters:
   SubnetName:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
@@ -20,7 +24,7 @@ Parameters:
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
-    Default: ""
+    Default: "release-187.15"
   NerEnabled:
     Type: String
     AllowedValues:
@@ -72,9 +76,21 @@ Parameters:
     Description: BigID Tenant Host Name
     Default: ""
   ScannerCount:
-    Description: "Desired Scanner Count"
     Type: String
-    Default: 3
+    Description: BigID ScannerCount
+    Default: "3"
+  AttachManagedPolicy:
+    Description: Whether to attach a managed policy
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  ManagedPolicyArn:
+    Description: The ARN of the managed policy to attach to the role ( Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true' )
+    Type: String
+    Default: ""
+
 Resources:
   ECSCluster:
     Type: "AWS::ECS::Cluster"
@@ -88,7 +104,7 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid-scanner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -130,7 +146,7 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid-scanner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -161,7 +177,7 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid-ner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
@@ -232,6 +248,7 @@ Resources:
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: "/"
       RoleName: ecsTaskExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -242,7 +259,13 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - !If
+          - ShouldAttachManagedPolicy
+          - !Ref ManagedPolicyArn
+          - !Ref "AWS::NoValue" 
+
   RolePolicies:
     Type: AWS::IAM::Policy
     DependsOn: ECSIAMRole
@@ -267,15 +290,16 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSIAMRole
-
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
     Properties:
       FunctionName: ECSScalerLambda
-      PackageType: Image
-      Code:
-        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ecs-scaler-lambda:1.0.0" # Replace with your ECR image URI
+      Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: bigid-cloudformation-templates
+        S3Key: ecs-scaler-lambda.zip
+      Runtime: python3.11
   LambdaEventPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -283,7 +307,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EventBridgeRule.Arn
-
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -304,12 +327,11 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
         - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
-
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
       Name: ECSScalerRule
-      ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
+      ScheduleExpression: "rate(1 minute)" # Schedule to trigger every 10 minutes
       State: ENABLED # Enable the rule
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
