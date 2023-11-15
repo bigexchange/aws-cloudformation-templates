@@ -331,7 +331,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       Name: ECSScalerRule
-      ScheduleExpression: "rate(1 minute)" # Schedule to trigger every 10 minutes
+      ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
       State: ENABLED # Enable the rule
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
