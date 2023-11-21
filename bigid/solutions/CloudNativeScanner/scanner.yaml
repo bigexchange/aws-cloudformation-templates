@@ -15,16 +15,19 @@ Parameters:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
     Type: String
     Default: ""
+    AllowedPattern : ".+"
   SecurityGroupName:
     Description: >-
       Security Group Name for ECS Task Definition, please replace with the
       proper Security Group. Please also make sure the SG is in the same subnet
     Type: String
     Default: ""
+    AllowedPattern : ".+"
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
     Default: ""
+    AllowedPattern : ".+"
   NerEnabled:
     Type: String
     AllowedValues:
@@ -71,10 +74,11 @@ Parameters:
     Type: String
     Description: BigID Refresh Token
     Default: ""
-  BigIDUIHostname:
+  BigIDHostname:
     Type: String
-    Description: BigID Tenant Host Name
+    Description: "E.G: test.bigid.cloud"
     Default: ""
+    AllowedPattern : ".+"
   ScannerCount:
     Type: String
     Description: BigID ScannerCount
@@ -109,7 +113,7 @@ Resources:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
             - Name: BIGID_UI_HOST_EXT
-              Value: !Sub "${BigIDUIHostname}"
+              Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
@@ -151,7 +155,7 @@ Resources:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
             - Name: BIGID_UI_HOST_EXT
-              Value: !Sub "${BigIDUIHostname}"
+              Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
@@ -182,7 +186,7 @@ Resources:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
             - Name: BIGID_UI_HOST_EXT
-              Value: !Sub "${BigIDUIHostname}"
+              Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
@@ -343,7 +347,7 @@ Resources:
                 - !Ref BigIDRefreshToken
                 - '",'
                 - '"host_name":"'
-                - !Ref BigIDUIHostname
+                - !Ref BigIDHostname
                 - '",'
                 - '"cluster_name":"'
                 - !Ref ECSCluster
