@@ -300,6 +300,7 @@ Resources:
       FunctionName: ECSScalerLambda
       Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: bigid-cloudformation-templates
         S3Key: ecs-scaler-lambda.zip
