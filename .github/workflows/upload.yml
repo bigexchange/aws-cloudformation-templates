@@ -1,0 +1,81 @@
+name: AWS Cloudformation Templates Actions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bigid/solutions/CloudNativeScanner/scanner.yaml'
+  workflow_dispatch:
+
+jobs:
+  s3-upload:
+    name: Scanner.yaml Copy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Configure AWS credentials from Prod account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
+          aws-region: us-east-1
+      - name: Copy scanner.yaml to the production bucket
+        run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
+      - name: Get Version for BigiD Lambda
+        run: |
+          LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
+          echo "Lambda version: $LAMBDA_VERSION"
+      - name: Patch Lambda Version in CloudFormation Template
+        run: |
+          yq e '.Resources.ECSScalerLambda.Properties.Code.S3Key |= sub("{LAMBDA_VERSION}", "'$LAMBDA_VERSION'")' ./bigid/solutions/CloudNativeScanner/scanner.yaml -i
+      
+
+  lambda-upload:
+    needs: s3-upload
+    name: Build Lambda and Push To S3
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11.0"
+      - name: Install dependencies
+        run: |
+          cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --target ./package
+      - name: Prepare package
+        run: |
+          cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          deactivate
+          mkdir -p package
+          cp -R venv/lib/python3.11/site-packages/* package/
+          cp ecs_scaler_lambda.py package/
+          cd package
+          zip -r ../ecs-scaler-lambda.zip .
+      - name: Configure AWS credentials from Prod account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
+          aws-region: us-east-1
+      - name: Get Version for BigiD Lambda
+        run: |
+          LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
+          echo "Lambda version: $LAMBDA_VERSION"
+      - name: Upload Lambda function to S3
+        run: |
+          cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          aws s3 cp ecs-scaler-lambda.zip s3://bigid-cloudformation-templates/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read

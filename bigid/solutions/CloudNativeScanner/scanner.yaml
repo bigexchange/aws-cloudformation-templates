@@ -303,8 +303,13 @@ Resources:
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: bigid-cloudformation-templates
-        S3Key: ecs-scaler-lambda.zip
+        S3Key: ecs-scaler-lambda-{LAMBDA_VERSION}.zip
       Runtime: python3.11
+  ECSScalerLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref ECSScalerLambda
+      Description: v1.0.0
   LambdaEventPermission:
     Type: AWS::Lambda::Permission
     Properties:
