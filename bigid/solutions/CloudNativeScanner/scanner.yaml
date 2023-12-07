@@ -14,20 +14,20 @@ Parameters:
   SubnetName:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
     Type: String
-    Default: ""
-    AllowedPattern : ".+"
+    # Default: ""
+    AllowedPattern: ".+"
   SecurityGroupName:
     Description: >-
       Security Group Name for ECS Task Definition, please replace with the
       proper Security Group. Please also make sure the SG is in the same subnet
     Type: String
-    Default: ""
-    AllowedPattern : ".+"
+    # Default: ""
+    AllowedPattern: ".+"
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
-    Default: ""
-    AllowedPattern : ".+"
+    # Default: ""
+    AllowedPattern: ".+"
   NerEnabled:
     Type: String
     AllowedValues:
@@ -253,7 +253,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
-      RoleName: ecsTaskExecutionRole
+      RoleName: BigIDScannerTaskExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -274,7 +274,7 @@ Resources:
     Type: AWS::IAM::Policy
     DependsOn: ECSIAMRole
     Properties:
-      PolicyName: ecsTaskExecutionPolicy
+      PolicyName: BigIDScannerTaskExecutionPolicy
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
