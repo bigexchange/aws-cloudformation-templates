@@ -14,19 +14,16 @@ Parameters:
   SubnetName:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
     Type: String
-    # Default: ""
     AllowedPattern: ".+"
   SecurityGroupName:
     Description: >-
       Security Group Name for ECS Task Definition, please replace with the
       proper Security Group. Please also make sure the SG is in the same subnet
     Type: String
-    # Default: ""
     AllowedPattern: ".+"
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
-    # Default: ""
     AllowedPattern: ".+"
   NerEnabled:
     Type: String
@@ -73,12 +70,10 @@ Parameters:
     NoEcho: true
     Type: String
     Description: BigID Refresh Token
-    Default: ""
   BigIDHostname:
     Type: String
     Description: "E.G: test.bigid.cloud"
-    Default: ""
-    AllowedPattern : ".+"
+    AllowedPattern: ".+"
   ScannerCount:
     Type: String
     Description: BigID ScannerCount
