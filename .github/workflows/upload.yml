@@ -78,4 +78,4 @@ jobs:
       - name: Upload Lambda function to S3
         run: |
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
-          aws s3 cp ecs-scaler-lambda.zip s3://bigid-cloudformation-templates/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
+          aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
