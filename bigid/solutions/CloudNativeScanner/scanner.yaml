@@ -297,7 +297,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       ReservedConcurrentExecutions: 1
       Code:
-        S3Bucket: bigid-ecs-lambda-scaler-${AWS::Region}
+        S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
         S3Key: ecs-scaler-lambda-{LAMBDA_VERSION}.zip
       Runtime: python3.11
   ECSScalerLambdaVersion:
