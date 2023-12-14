@@ -93,7 +93,11 @@ def main(
     if system_token:
         jobs = get_scans_jobs(hostname, system_token)
         if not jobs:
-            return None
+            return {
+                "statusCode": 202,
+                "body": "No Scanner Jobs Running",
+            }
+
         running = iterate_scanners(system_token, hostname, scanner_group)
         if not running:
             desired_count = 1
