@@ -93,12 +93,10 @@ def main(
     if system_token:
         jobs = get_scans_jobs(hostname, system_token)
         if not jobs:
-            return {
-                "statusCode": 202,
-                "body": "No Scanner Jobs Running",
-            }
+            return "No Jobs"
 
         running = iterate_scanners(system_token, hostname, scanner_group)
+        
         if not running:
             desired_count = 1
         # Get scans and scale ECS task definition based on the result
@@ -131,7 +129,12 @@ def lambda_handler(event, context):
         region_name,
         scanner_group,
     )
-    if result is not None:
+    if result == "No Jobs":
+        return {
+            "statusCode": 202,
+            "body": "No Jobs Running",
+        }
+    elif result is not None:
         # Return a 200 response with a success message
         return {
             "statusCode": 200,
