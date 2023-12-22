@@ -364,3 +364,13 @@ Resources:
                 - '"desired_count":'
                 - !Ref ScannerCount
                 - "}"
+  RefreshTokenSecret:
+    Type: AWS::SecretsManager::Secret
+  Properties:
+    Description: BigID Scanner Token
+    KmsKeyId: bigid/scanner-refresh-token
+    Name: bigid-scanner-token
+    SecretString: 
+      !Sub BigIDRefreshToken
+    Tags: 
+      - BigID Scanner Token
