@@ -23,7 +23,9 @@ Using the cloud formation template provided, kindly navigate to the Cloudformati
 
 Upload the Cloudformation Template, and input the following variables below.
 
-
+```
+https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/bigid/solutions/CloudNativeScanner/scanner.yaml
+```
 
 ## Mandatory Input Variables for Cloudformation
 
