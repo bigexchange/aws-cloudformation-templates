@@ -193,7 +193,7 @@ Resources:
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
       EphemeralStorage:
-      	SizeInGiB: 200
+        SizeInGiB: 200
       RequiresCompatibilities:
         - FARGATE
   ECSScannerService:
