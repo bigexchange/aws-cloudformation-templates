@@ -6,25 +6,25 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
+  ShouldAttachManagedPolicy:
+    !And
+      - !Equals [ !Ref AttachManagedPolicy, "true" ]
+      - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
 Parameters:
   SubnetName:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
     Type: String
-    Default: ""
+    AllowedPattern: ".+"
   SecurityGroupName:
     Description: >-
       Security Group Name for ECS Task Definition, please replace with the
       proper Security Group. Please also make sure the SG is in the same subnet
     Type: String
-    Default: ""
-  ImageRepository:
-    Description: Default Image Repository for the ECS Scanner
-    Type: String
-    Default: ""
+    AllowedPattern: ".+"
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
-    Default: ""
+    AllowedPattern: ".+"
   NerEnabled:
     Type: String
     AllowedValues:
@@ -70,10 +70,24 @@ Parameters:
     NoEcho: true
     Type: String
     Description: BigID Refresh Token
-    Default: ""
-  BigIDUIHostname:
+  BigIDHostname:
     Type: String
-    Description: BigID Tenant Host Name
+    Description: "E.G: test.bigid.cloud"
+    AllowedPattern: ".+"
+  ScannerCount:
+    Type: String
+    Description: BigID ScannerCount
+    Default: "3"
+  AttachManagedPolicy:
+    Description: Whether to attach a managed policy
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  ManagedPolicyArn:
+    Description: The ARN of the managed policy to attach to the role ( Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true' )
+    Type: String
     Default: ""
 
 Resources:
@@ -89,12 +103,12 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-scanner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
             - Name: BIGID_UI_HOST_EXT
-              Value: !Sub "${BigIDUIHostname}"
+              Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
@@ -110,7 +124,7 @@ Resources:
             Options:
               awslogs-group: scanner-container
               awslogs-create-group: true
-              awslogs-region: us-east-1
+              awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 9999
@@ -131,12 +145,12 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-scanner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
             - Name: BIGID_UI_HOST_EXT
-              Value: !Sub "${BigIDUIHostname}"
+              Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
@@ -154,7 +168,7 @@ Resources:
             Options:
               awslogs-group: scanner-container
               awslogs-create-group: true
-              awslogs-region: us-east-1
+              awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 9999
@@ -162,12 +176,12 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !Sub "${ImageRepository}/bigid-ner:${ImageTagVersion}"
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: !Sub "${BigIDRefreshToken}"
             - Name: BIGID_UI_HOST_EXT
-              Value: !Sub "${BigIDUIHostname}"
+              Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
@@ -183,7 +197,7 @@ Resources:
             Options:
               awslogs-group: scanner-ner-container
               awslogs-create-group: true
-              awslogs-region: us-east-1
+              awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 8080
@@ -233,7 +247,8 @@ Resources:
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: ecsTaskExecutionRole
+      Path: "/"
+      RoleName: BigIDScannerTaskExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -243,12 +258,18 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - !If
+          - ShouldAttachManagedPolicy
+          - !Ref ManagedPolicyArn
+          - !Ref "AWS::NoValue" 
+
   RolePolicies:
     Type: AWS::IAM::Policy
     DependsOn: ECSIAMRole
     Properties:
-      PolicyName: ecsTaskExecutionPolicy
+      PolicyName: BigIDScannerTaskExecutionPolicy
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -268,3 +289,88 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSIAMRole
+  ECSScalerLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: ECSScalerLambda
+      Handler: ecs_scaler_lambda.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      ReservedConcurrentExecutions: 1
+      Code:
+        S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
+        S3Key: ecs-scaler-lambda-{LAMBDA_VERSION}.zip
+      Runtime: python3.11
+  ECSScalerLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref ECSScalerLambda
+      Description: v1.0.0
+  LambdaEventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ECSScalerLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventBridgeRule.Arn
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: ECSScalerLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
+  EventBridgeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: ECSScalerRule
+      ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
+      State: ENABLED # Enable the rule
+      Targets:
+        - Arn: !GetAtt ECSScalerLambda.Arn
+          Id: ECSScalerLambdaTarget
+          InputTransformer:
+            InputTemplate: !Join
+              - ""
+              - - '{"refresh_token":"'
+                - !Ref BigIDRefreshToken
+                - '",'
+                - '"host_name":"'
+                - !Ref BigIDHostname
+                - '",'
+                - '"cluster_name":"'
+                - !Ref ECSCluster
+                - '",'
+                - '"scanner_group":"'
+                - !Ref ScannerGroupName
+                - '",'
+                - '"service_name":"bigid-scanner-service'
+                - '",'
+                - '"region_name":"'
+                - !Ref "AWS::Region"
+                - '",'
+                - '"desired_count":'
+                - !Ref ScannerCount
+                - "}"
+  RefreshTokenSecret:
+    Type: AWS::SecretsManager::Secret
+  Properties:
+    Description: BigID Scanner Token
+    KmsKeyId: bigid/scanner-refresh-token
+    Name: bigid-scanner-token
+    SecretString: 
+      !Sub BigIDRefreshToken
+    Tags: 
+      - BigID Scanner Token
