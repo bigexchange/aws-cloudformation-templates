@@ -106,7 +106,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid/scanner-refresh-token}}'
+              Value: '{{resolve:secretsmanager:bigid-scanner-token}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -148,7 +148,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid/scanner-refresh-token}}'
+              Value: '{{resolve:secretsmanager:bigid-scanner-token}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -369,7 +369,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: BigID Scanner Token
-      KmsKeyId: bigid/scanner-refresh-token
+      KmsKeyId: bigid-scanner-token
       Name: bigid-scanner-token
       SecretString: 
         !Sub BigIDRefreshToken
