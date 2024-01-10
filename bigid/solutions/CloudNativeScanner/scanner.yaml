@@ -106,7 +106,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: !Sub "${BigIDRefreshToken}"
+              Value: '{{resolve:secretsmanager:bigid/scanner-refresh-token}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -148,7 +148,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: !Sub "${BigIDRefreshToken}"
+              Value: '{{resolve:secretsmanager:bigid/scanner-refresh-token}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -285,6 +285,7 @@ Resources:
                 "logs:CreateLogGroup",
                 "logs:DescribeLogStreams",
                 "iam:DeleteRolePolicy",
+                "secretsmanager:GetSecretValue",
               ]
             Resource: "*"
       Roles:
