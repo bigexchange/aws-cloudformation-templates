@@ -369,7 +369,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: BigID Scanner Token
-      KmsKeyId: bigid-scanner-token
+      KmsKeyId: bigid/scanner-refresh-token
       Name: bigid-scanner-token
       SecretString: 
         !Sub BigIDRefreshToken
