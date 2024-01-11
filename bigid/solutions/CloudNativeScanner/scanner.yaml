@@ -98,7 +98,9 @@ Resources:
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
-    DependsOn: ECSIAMRole
+    DependsOn:
+      - RefreshTokenSecret
+      - ECSIAMRole
     Properties:
       ContainerDefinitions:
         - Name: bigid-scanner
@@ -106,7 +108,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: !Sub "${BigIDRefreshToken}"
+              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -139,7 +141,9 @@ Resources:
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
-    DependsOn: ECSIAMRole
+    DependsOn:
+      - RefreshTokenSecret
+      - ECSIAMRole
     Properties:
       ExecutionRoleArn: !Ref ECSIAMRole
       ContainerDefinitions:
@@ -148,7 +152,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: !Sub "${BigIDRefreshToken}"
+              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -179,7 +183,7 @@ Resources:
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
-              Value: !Sub "${BigIDRefreshToken}"
+              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -285,6 +289,7 @@ Resources:
                 "logs:CreateLogGroup",
                 "logs:DescribeLogStreams",
                 "iam:DeleteRolePolicy",
+                "secretsmanager:GetSecretValue",
               ]
             Resource: "*"
       Roles:
@@ -368,9 +373,10 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: BigID Scanner Token
-      KmsKeyId: bigid/scanner-refresh-token
       Name: bigid-scanner-token
       SecretString: 
         !Sub BigIDRefreshToken
-      Tags: 
-        - BigID Scanner Token
+      Tags:
+        -
+          Key: Name
+          Value: scanner-refresh-token
