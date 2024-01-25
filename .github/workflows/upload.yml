@@ -23,8 +23,6 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
-      - name: Copy scanner.yaml to the production bucket
-        run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
       - name: Get Version for BigiD Lambda
         run: |
           LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
@@ -32,6 +30,8 @@ jobs:
       - name: Patch Lambda Version in CloudFormation Template
         run: |
           yq e '.Resources.ECSScalerLambda.Properties.Code.S3Key |= sub("{LAMBDA_VERSION}", "'$LAMBDA_VERSION'")' ./bigid/solutions/CloudNativeScanner/scanner.yaml -i
+      - name: Copy scanner.yaml to the production bucket
+        run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
       
 
   lambda-upload:
