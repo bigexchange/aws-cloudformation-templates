@@ -349,8 +349,8 @@ Resources:
           InputTransformer:
             InputTemplate: !Join
               - ""
-              - - '{"refresh_token":"'
-                - !Ref BigIDRefreshToken
+              - - '{"refresh_token_id":"'
+                - !Ref BigIDRefreshTokenSecret
                 - '",'
                 - '"host_name":"'
                 - !Ref BigIDHostname
