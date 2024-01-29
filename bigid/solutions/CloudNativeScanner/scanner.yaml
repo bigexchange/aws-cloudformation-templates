@@ -72,11 +72,11 @@ Parameters:
     Description: BigID Refresh Token
   BigIDHostname:
     Type: String
-    Description: "E.G: test.bigid.cloud"
+    Description: "E.G: test.bigid.cloud. Please do not append the HTTP:// or HTTPS:// Protocol"
     AllowedPattern: ".+"
   ScannerCount:
     Type: String
-    Description: BigID ScannerCount
+    Description: Scanner Scaler Maximum Count(This will be the maximum amount of allowed Scanners)
     Default: "3"
   AttachManagedPolicy:
     Description: Whether to attach a managed policy
