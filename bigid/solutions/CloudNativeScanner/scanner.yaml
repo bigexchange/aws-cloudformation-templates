@@ -6,10 +6,9 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
-  ShouldAttachManagedPolicy:
-    !And
-      - !Equals [ !Ref AttachManagedPolicy, "true" ]
-      - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
+  ShouldAttachManagedPolicy: !And
+    - !Equals [!Ref AttachManagedPolicy, "true"]
+    - !Not [!Equals [!Ref ManagedPolicyArn, ""]]
 Parameters:
   SubnetName:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
@@ -17,8 +16,7 @@ Parameters:
     AllowedPattern: ".+"
   SecurityGroupName:
     Description: >-
-      Security Group Name for ECS Task Definition, please replace with the
-      proper Security Group. Please also make sure the SG is in the same subnet
+      Security Group Name for ECS Task Definition, please replace with the proper Security Group. Please also make sure the SG is in the same subnet
     Type: String
     AllowedPattern: ".+"
   ImageTagVersion:
@@ -35,14 +33,12 @@ Parameters:
   ScannerCPU:
     Type: Number
     Description: >-
-      Scanner CPU Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
+      Scanner CPU Please use the increments provided by Amazon "256,512,1024,2048..etc"
     Default: 8192
   ScannerMemory:
     Type: Number
     Description: >-
-      Scanner Memory Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
+      Scanner Memory Please use the increments provided by Amazon "256,512,1024,2048..etc"
     Default: 32768
   ScannerHostName:
     Type: String
@@ -57,14 +53,12 @@ Parameters:
   NERCPU:
     Type: Number
     Description: >-
-      Scanner CPU Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
+      Scanner CPU Please use the increments provided by Amazon "256,512,1024,2048..etc"
     Default: 4096
   NERMemory:
     Type: Number
     Description: >-
-      NER Memory Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
+      NER Memory Please use the increments provided by Amazon "256,512,1024,2048..etc"
     Default: 8192
   BigIDRefreshToken:
     NoEcho: true
@@ -89,7 +83,6 @@ Parameters:
     Description: The ARN of the managed policy to attach to the role ( Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true' )
     Type: String
     Default: ""
-
 Resources:
   ECSCluster:
     Type: "AWS::ECS::Cluster"
@@ -230,7 +223,6 @@ Resources:
           Subnets:
             - !Sub "${SubnetName}"
       TaskDefinition: !Ref ScannerECSTaskDefinition
-
   ECSNERService:
     Condition: IsNer
     Type: "AWS::ECS::Service"
@@ -247,7 +239,6 @@ Resources:
           Subnets:
             - !Sub "${SubnetName}"
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
-
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -267,8 +258,7 @@ Resources:
         - !If
           - ShouldAttachManagedPolicy
           - !Ref ManagedPolicyArn
-          - !Ref "AWS::NoValue" 
-
+          - !Ref "AWS::NoValue"
   RolePolicies:
     Type: AWS::IAM::Policy
     DependsOn: ECSIAMRole
@@ -278,19 +268,7 @@ Resources:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
-            Action:
-              [
-                "ecr:GetAuthorizationToken",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents",
-                "logs:CreateLogGroup",
-                "logs:DescribeLogStreams",
-                "iam:DeleteRolePolicy",
-                "secretsmanager:GetSecretValue",
-              ]
+            Action: ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage", "logs:CreateLogStream", "logs:PutLogEvents", "logs:CreateLogGroup", "logs:DescribeLogStreams", "iam:DeleteRolePolicy", "secretsmanager:GetSecretValue"]
             Resource: "*"
       Roles:
         - !Ref ECSIAMRole
@@ -303,7 +281,7 @@ Resources:
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
-        S3Key: ecs-scaler-lambda-{LAMBDA_VERSION}.zip
+        S3Key: ecs-scaler-lambda-v1.0.0.zip
       Runtime: python3.11
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
@@ -374,9 +352,7 @@ Resources:
     Properties:
       Description: BigID Scanner Token
       Name: bigid-scanner-token
-      SecretString: 
-        !Sub BigIDRefreshToken
+      SecretString: !Sub BigIDRefreshToken
       Tags:
-        -
-          Key: Name
+        - Key: Name
           Value: scanner-refresh-token
