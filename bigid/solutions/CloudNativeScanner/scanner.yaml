@@ -72,11 +72,11 @@ Parameters:
     Description: BigID Refresh Token
   BigIDHostname:
     Type: String
-    Description: "E.G: test.bigid.cloud"
+    Description: "E.G: test.bigid.cloud (Please Do Not Include the Protocol http:// or https://)"
     AllowedPattern: ".+"
   ScannerCount:
     Type: String
-    Description: BigID ScannerCount
+    Description: Maximum BigID Scanner Count(Maximum Replicas of Scanners)
     Default: "3"
   AttachManagedPolicy:
     Description: Whether to attach a managed policy
@@ -303,7 +303,7 @@ Resources:
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
-        S3Key: ecs-scaler-lambda-{LAMBDA_VERSION}.zip
+        S3Key: ecs-scaler-lambda-v1.0.0.zip
       Runtime: python3.11
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
