@@ -339,6 +339,7 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
   EventBridgeRule:
     Type: "AWS::Events::Rule"
+    DependsOn: RefreshTokenSecret
     Properties:
       Name: ECSScalerRule
       ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
@@ -350,7 +351,7 @@ Resources:
             InputTemplate: !Join
               - ""
               - - '{"refresh_token_secret_id":"'
-                - !Ref BigIDRefreshTokenSecret
+                - !Ref RefreshTokenSecret
                 - '",'
                 - '"host_name":"'
                 - !Ref BigIDHostname
@@ -375,7 +376,7 @@ Resources:
       Description: BigID Scanner Token
       Name: bigid-scanner-token
       SecretString: 
-        !Sub BigIDRefreshToken
+        !Ref BigIDRefreshToken
       Tags:
         -
           Key: Name
