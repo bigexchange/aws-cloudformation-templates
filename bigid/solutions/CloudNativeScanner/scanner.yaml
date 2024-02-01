@@ -337,6 +337,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
         - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     DependsOn: RefreshTokenSecret
