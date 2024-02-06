@@ -2,6 +2,34 @@ import boto3
 import requests
 
 
+
+def get_secret(refresh_token_secret_id, region_name):
+    secret_name = refresh_token_secret_id
+    region_name = region_name  # Replace with your AWS region
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+    # Extract the secret string
+    if 'SecretString' in get_secret_value_response:
+        secret = get_secret_value_response['SecretString']
+    else:
+        print("Secret string not found")
+        return None
+
+    return secret
+
+
 # Function to get the system token
 def get_token(refresh_token, hostname):
     # Check if the hostname is set
@@ -81,7 +109,7 @@ def iterate_scanners(system_token, hostname, scanner_group):
 
 
 def main(
-    refresh_token,
+    refresh_token_secret_id,
     hostname,
     cluster_name,
     service_name,
@@ -89,6 +117,7 @@ def main(
     region_name,
     scanner_group,
 ):
+    refresh_token = get_secret(refresh_token_secret_id, region_name)
     system_token = get_token(refresh_token, hostname)
     if system_token:
         jobs = get_scans_jobs(hostname, system_token)
@@ -114,14 +143,14 @@ def main(
 # Lambda entry point
 def lambda_handler(event, context):
     hostname = event.get("host_name")
-    refresh_token = event.get("refresh_token")
+    refresh_token_secret_id = event.get("refresh_token_secret_id")
     cluster_name = event.get("cluster_name")
     service_name = event.get("service_name")
     region_name = event.get("region_name")
     desired_count = event.get("desired_count")
     scanner_group = event.get("scanner_group")
     result = main(
-        refresh_token,
+        refresh_token_secret_id,
         hostname,
         cluster_name,
         service_name,

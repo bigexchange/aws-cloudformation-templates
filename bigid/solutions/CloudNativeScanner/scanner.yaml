@@ -303,13 +303,13 @@ Resources:
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
-        S3Key: ecs-scaler-lambda-v1.0.0.zip
+        S3Key: ecs-scaler-lambda-v1.0.1.zip
       Runtime: python3.11
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref ECSScalerLambda
-      Description: v1.0.0
+      Description: v1.0.1
   LambdaEventPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -337,8 +337,10 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
         - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
   EventBridgeRule:
     Type: "AWS::Events::Rule"
+    DependsOn: RefreshTokenSecret
     Properties:
       Name: ECSScalerRule
       ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
@@ -349,8 +351,8 @@ Resources:
           InputTransformer:
             InputTemplate: !Join
               - ""
-              - - '{"refresh_token":"'
-                - !Ref BigIDRefreshToken
+              - - '{"refresh_token_secret_id":"'
+                - !Ref RefreshTokenSecret
                 - '",'
                 - '"host_name":"'
                 - !Ref BigIDHostname
@@ -375,7 +377,7 @@ Resources:
       Description: BigID Scanner Token
       Name: bigid-scanner-token
       SecretString: 
-        !Sub BigIDRefreshToken
+        !Ref BigIDRefreshToken
       Tags:
         -
           Key: Name
