@@ -71,11 +71,14 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
-      - name: Get Version for BigiD Lambda
+      - name: Get Version and Upload Lambda function to S3
         run: |
+          # Extract version
           LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
           echo "Lambda version: $LAMBDA_VERSION"
-      - name: Upload Lambda function to S3
-        run: |
+          
+          # Navigate to the correct directory
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          
+          # Upload to S3
           aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
