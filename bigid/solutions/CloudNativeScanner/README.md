@@ -57,3 +57,13 @@ This is the required Lambda that is being utilized for scaling up and scaling do
 This is the hierachical object that is required to spin up the following resources which are the ECS Scanner Task Definitions / ECS Scanner Services.
 
 ##### Scanner Task Definition
+
+This Task Definition is responsible for the configuration of the Scanner, this sets all of the container environment variables, and is responsible for the amount of replicas of scanners.
+
+##### BigID Scanner
+
+Scanner Pod that is scaled out from the Task Definition
+
+##### BigID Ner 
+
+Sidecar container in tandem with scanner pod that utilizes NER
