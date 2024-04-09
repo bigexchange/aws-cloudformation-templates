@@ -224,7 +224,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 1
+      DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -241,7 +241,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 1
+      DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -372,12 +372,12 @@ Resources:
                 - '"region_name":"'
                 - !Ref "AWS::Region"
                 - '",'
-                - '"desired_count":'
-                - !Ref MaximumScannerCount
-                - '",'
-                - '"minimum_desired_count":'
+                - '"minimum_desired_count":"'
                 - !Ref MinimumScannerCount
-                - "}"
+                - '",'
+                - '"desired_count":"'
+                - !Ref MaximumScannerCount
+                - '"}'
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
