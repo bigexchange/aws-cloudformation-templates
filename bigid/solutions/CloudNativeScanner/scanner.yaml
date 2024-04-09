@@ -74,10 +74,14 @@ Parameters:
     Type: String
     Description: "E.G: test.bigid.cloud (Please Do Not Include the Protocol http:// or https://)"
     AllowedPattern: ".+"
-  ScannerCount:
+  MaximumScannerCount:
     Type: String
     Description: Maximum BigID Scanner Count(Maximum Replicas of Scanners)
     Default: "3"
+  MinimumScannerCount:
+    Type: String
+    Description: Minimum BigID Scanner Count(Maximum Replicas of Scanners)
+    Default: "1"
   AttachManagedPolicy:
     Description: Whether to attach a managed policy
     Type: String
@@ -369,7 +373,10 @@ Resources:
                 - !Ref "AWS::Region"
                 - '",'
                 - '"desired_count":'
-                - !Ref ScannerCount
+                - !Ref MaximumScannerCount
+                - '",'
+                - '"minimum_desired_count":'
+                - !Ref MinimumScannerCount
                 - "}"
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
