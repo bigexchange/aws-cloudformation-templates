@@ -19,13 +19,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+<<<<<<< HEAD
+=======
+
+>>>>>>> 667d7e6 (Update upload.yml)
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
+<<<<<<< HEAD
       - name: Copy scanner.yaml to the production bucket
         run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
+=======
+        
+      - name: Copy scanner.yaml to the appropriate path in the bucket
+        run: |
+          aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner.yaml --acl public-read
+          aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner-${{ github.ref_name }}.yaml --acl public-read
+>>>>>>> 667d7e6 (Update upload.yml)
 
   lambda-upload:
     needs: s3-upload
@@ -37,18 +49,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+<<<<<<< HEAD
+=======
+
+>>>>>>> 667d7e6 (Update upload.yml)
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11.0"
       - name: Install dependencies
         run: |
-          cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          cd $S3_PREFIX/ecs-scaler-lambda/
           python -m pip install --upgrade pip
           pip install -r requirements.txt --target ./package
       - name: Prepare package
         run: |
-          cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
+          cd $S3_PREFIX/ecs-scaler-lambda/
           python -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
@@ -71,7 +87,18 @@ jobs:
           echo "Lambda version: $LAMBDA_VERSION"
 
           # Navigate to the correct directory
+<<<<<<< HEAD
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
 
           # Upload to S3
           aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
+=======
+          cd $S3_PREFIX/ecs-scaler-lambda/
+          
+          # Upload to S3
+          aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
+          aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION-${{ github.ref_name }}.zip --acl public-read
+          
+          
+  
+>>>>>>> 667d7e6 (Update upload.yml)
