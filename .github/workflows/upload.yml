@@ -35,9 +35,14 @@ jobs:
         
       - name: Copy scanner.yaml to the appropriate path in the bucket
         run: |
+<<<<<<< HEAD
           aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner.yaml --acl public-read
           aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner-${{ github.ref_name }}.yaml --acl public-read
 >>>>>>> 667d7e6 (Update upload.yml)
+=======
+          aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner.yaml --acl public-read
+          aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
+>>>>>>> 8677631 (Update upload.yml)
 
   lambda-upload:
     needs: s3-upload
@@ -97,8 +102,12 @@ jobs:
           
           # Upload to S3
           aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
+<<<<<<< HEAD
           aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION-${{ github.ref_name }}.zip --acl public-read
           
           
   
 >>>>>>> 667d7e6 (Update upload.yml)
+=======
+          aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-${{ github.ref_name }}.zip --acl public-read
+>>>>>>> 8677631 (Update upload.yml)
