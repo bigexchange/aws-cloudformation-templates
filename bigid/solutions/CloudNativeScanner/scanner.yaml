@@ -11,10 +11,12 @@ Conditions:
       - !Equals [ !Ref AttachManagedPolicy, "true" ]
       - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
 Parameters:
+  VpcID:
+    Description: "VPC ID for ECS Task Definition"
+    Type: AWS::EC2::VPC::Id
   SubnetName:
     Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
-    Type: String
-    AllowedPattern: ".+"
+    Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
       Security Group Name for ECS Task Definition, please replace with the
@@ -54,18 +56,6 @@ Parameters:
     Description: >-
       Scanner Group Name
     Default: remote-scanner
-  NERCPU:
-    Type: Number
-    Description: >-
-      Scanner CPU Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
-    Default: 4096
-  NERMemory:
-    Type: Number
-    Description: >-
-      NER Memory Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
-    Default: 8192
   BigIDRefreshToken:
     NoEcho: true
     Type: String
@@ -104,7 +94,6 @@ Resources:
     Condition: IsScannerOnly
     DependsOn:
       - RefreshTokenSecret
-      - ECSIAMRole
     Properties:
       ContainerDefinitions:
         - Name: bigid-scanner
@@ -125,6 +114,8 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !Sub "${ScannerGroupName}"
+            - Name: RDS_SNAPSCAN_VPC_ID
+              Value: !Ref VpcID
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -139,7 +130,7 @@ Resources:
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
-      ExecutionRoleArn: !Ref ECSIAMRole
+      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
   ScannerWithNerECSTaskDefinition:
@@ -147,9 +138,8 @@ Resources:
     Condition: IsNer
     DependsOn:
       - RefreshTokenSecret
-      - ECSIAMRole
     Properties:
-      ExecutionRoleArn: !Ref ECSIAMRole
+      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -251,7 +241,6 @@ Resources:
           Subnets:
             - !Sub "${SubnetName}"
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
-
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -271,11 +260,10 @@ Resources:
         - !If
           - ShouldAttachManagedPolicy
           - !Ref ManagedPolicyArn
-          - !Ref "AWS::NoValue" 
+          - !Ref "AWS::NoValue"
 
   RolePolicies:
     Type: AWS::IAM::Policy
-    DependsOn: ECSIAMRole
     Properties:
       PolicyName: BigIDScannerTaskExecutionPolicy
       PolicyDocument:
@@ -344,7 +332,6 @@ Resources:
         - arn:aws:iam::aws:policy/SecretsManagerReadWrite
   EventBridgeRule:
     Type: "AWS::Events::Rule"
-    DependsOn: RefreshTokenSecret
     Properties:
       Name: ECSScalerRule
       ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
@@ -383,7 +370,7 @@ Resources:
     Properties:
       Description: BigID Scanner Token
       Name: bigid-scanner-token
-      SecretString: 
+      SecretString:
         !Ref BigIDRefreshToken
       Tags:
         -
