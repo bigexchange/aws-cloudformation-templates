@@ -12,7 +12,7 @@ Parameters:
     Description: "The VPC ID to use for the ECS Task Definition."
     Type: AWS::EC2::VPC::Id
   SubnetName:
-    Description: "The ID of the subnet to use for the ECS Task Definition. Please provide the appropriate subnet ID."
+    Description: "The subnet name to use for the ECS Task Definition. Please provide the appropriate subnet ID."
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
