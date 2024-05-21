@@ -74,10 +74,14 @@ Parameters:
     Type: String
     Description: "E.G: test.bigid.cloud (Please Do Not Include the Protocol http:// or https://)"
     AllowedPattern: ".+"
-  ScannerCount:
+  MaximumScannerCount:
     Type: String
     Description: Maximum BigID Scanner Count(Maximum Replicas of Scanners)
     Default: "3"
+  MinimumScannerCount:
+    Type: String
+    Description: Minimum BigID Scanner Count(Maximum Replicas of Scanners)
+    Default: "1"
   AttachManagedPolicy:
     Description: Whether to attach a managed policy
     Type: String
@@ -220,7 +224,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 1
+      DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -237,7 +241,7 @@ Resources:
     Properties:
       ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
-      DesiredCount: 1
+      DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -303,13 +307,13 @@ Resources:
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
-        S3Key: ecs-scaler-lambda-v1.0.1.zip
+        S3Key: ecs-scaler-lambda-v1.0.2.zip
       Runtime: python3.11
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref ECSScalerLambda
-      Description: v1.0.1
+      Description: v1.0.2
   LambdaEventPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -368,9 +372,12 @@ Resources:
                 - '"region_name":"'
                 - !Ref "AWS::Region"
                 - '",'
-                - '"desired_count":'
-                - !Ref ScannerCount
-                - "}"
+                - '"minimum_desired_count":"'
+                - !Ref MinimumScannerCount
+                - '",'
+                - '"desired_count":"'
+                - !Ref MaximumScannerCount
+                - '"}'
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
     Properties:

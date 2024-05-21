@@ -116,6 +116,7 @@ def main(
     desired_count,
     region_name,
     scanner_group,
+    minimum_desired_count,
 ):
     refresh_token = get_secret(refresh_token_secret_id, region_name)
     system_token = get_token(refresh_token, hostname)
@@ -127,7 +128,7 @@ def main(
         running = iterate_scanners(system_token, hostname, scanner_group)
         
         if not running:
-            desired_count = 1
+            desired_count = minimum_desired_count
         # Get scans and scale ECS task definition based on the result
         result = scale_ecs_task_definition(
             cluster_name,
@@ -149,6 +150,7 @@ def lambda_handler(event, context):
     region_name = event.get("region_name")
     desired_count = event.get("desired_count")
     scanner_group = event.get("scanner_group")
+    minimum_desired_count = event.get("minimum_desired_count")
     result = main(
         refresh_token_secret_id,
         hostname,
@@ -157,6 +159,7 @@ def lambda_handler(event, context):
         desired_count,
         region_name,
         scanner_group,
+        minimum_desired_count,
     )
     if result == "No Jobs":
         return {
