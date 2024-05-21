@@ -3,7 +3,8 @@ name: AWS Cloudformation Templates Actions
 on:
   push:
     branches:
-      - BCO-15535-Set-Minimum-Scaler-Variable
+      - staging
+      - main
     paths:
       - 'bigid/solutions/CloudNativeScanner/scanner.yaml'
   workflow_dispatch:
