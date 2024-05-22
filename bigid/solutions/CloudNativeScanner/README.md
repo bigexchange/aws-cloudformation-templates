@@ -40,16 +40,26 @@ https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/
 
 ## Mandatory Input Variables for CloudFormation ECS Cluster Creation
 
-| Key               | Value                                        | Type   |
-|-------------------|----------------------------------------------|--------|
-| BigIDRefreshToken | `TOKEN`                                      | String |
-| BigIDUIHostname   | `customer.bigid.cloud`                       | String |
-| ImageRepository   | `1234567890.dkr.ecr.us-east-1.amazonaws.com` | String |
-| ImageTagVersion   | `release-xxx`                                | String |
-| SecurityGroupName | `sg-123456`                                  | String |
-| SubnetName        | `subnet-123456`                              | String |
-| NerEnabled        | `false`                                      | Bool   |
-| ScannerCount      | `3`                                          | Int    |
+| Name                | Description                                                                                                                  | Type                           |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| VpcID               | VPC ID for ECS Task Definition                                                                                               | AWS::EC2::VPC::Id              |
+| SubnetId1           | Subnet ID for ECS Task Definition                                                                                            | AWS::EC2::Subnet::Id           |
+| SubnetId2           | Subnet ID for ECS Task Definition                                                                                            | AWS::EC2::Subnet::Id           |
+| SubnetId3           | Subnet ID for ECS Task Definition                                                                                            | AWS::EC2::Subnet::Id           |
+| SecurityGroupName   | Security Group ID for ECS Task Definition, please replace with the proper Security Group. Please also make sure the SG is in the same subnet. | AWS::EC2::SecurityGroup::Id    |
+| ImageTagVersion     | Setting the tag version of the scanner                                                                                       | String                         |
+| NerEnabled          | Enable NER                                                                                                                   | Bool                         |
+| ScannerCPU          | Scanner CPU Please use the increments provided by Amazon "256,512,1024,2048..etc"                                            | Number                         |
+| ScannerMemory       | Scanner Memory Please use the increments provided by Amazon "256,512,1024,2048..etc"                                         | Number                         |
+| ScannerHostName     | Scanner Host Name                                                                                                            | String                         |
+| ScannerGroupName    | Scanner Group Name                                                                                                           | String                         |
+| BigIDRefreshToken   | BigID Refresh Token                                                                                                          | String                         |
+| BigIDHostname       | E.G: test.bigid.cloud (Please Do Not Include the Protocol http:// or https://)                                               | String                         |
+| MaximumScannerCount | Maximum BigID Scanner Count (Maximum Replicas of Scanners)                                                                   | String                         |
+| MinimumScannerCount | Minimum BigID Scanner Count (Maximum Replicas of Scanners)                                                                   | String                         |
+| AttachManagedPolicy | Whether to attach a managed policy                                                                                           | String                         |
+| ManagedPolicyArn    | The ARN of the managed policy to attach to the role (Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true') | String                         |
+
 
 ## ECS Diagram
 
