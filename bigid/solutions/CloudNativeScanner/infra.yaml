@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cloudformation Template for BigID Scanner Infra This creates 3 Private Subnets and 1 Public Subnet
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: The CIDR block for the VPC.
+  PrivateSubnet1Cidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: The CIDR block for the first private subnet.
+  PrivateSubnet2Cidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: The CIDR block for the second private subnet.
+  PrivateSubnet3Cidr:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: The CIDR block for the third private subnet.
+  PublicSubnetCidr:
+    Type: String
+    Default: 10.0.0.0/24
+    Description: The CIDR block for the public subnet.
+
+Resources:
+  BigIDScannerVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: BigIDScannerVPC
+
+  BigIDScannerInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: BigIDScannerInternetGateway
+
+  BigIDScannerAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      InternetGatewayId: !Ref BigIDScannerInternetGateway
+
+  BigIDScannerPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      CidrBlock: !Ref PublicSubnetCidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: BigIDScannerPublicSubnet
+
+  BigIDScannerPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: BigIDScannerPrivateSubnet1
+
+  BigIDScannerPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: BigIDScannerPrivateSubnet2
+
+  BigIDScannerPrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      CidrBlock: !Ref PrivateSubnet3Cidr
+      AvailabilityZone: !Select [ 2, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: BigIDScannerPrivateSubnet3
+
+  BigIDScannerNATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  BigIDScannerNATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt BigIDScannerNATGatewayEIP.AllocationId
+      SubnetId: !Ref BigIDScannerPublicSubnet
+      Tags:
+        - Key: Name
+          Value: BigIDScannerNATGateway
+
+  BigIDScannerPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      Tags:
+        - Key: Name
+          Value: BigIDScannerPrivateRouteTable
+
+  BigIDScannerPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BigIDScannerVPC
+      Tags:
+        - Key: Name
+          Value: BigIDScannerPublicRouteTable
+
+  BigIDScannerPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: BigIDScannerNATGateway
+    Properties:
+      RouteTableId: !Ref BigIDScannerPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref BigIDScannerInternetGateway
+
+  BigIDScannerPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: BigIDScannerNATGateway
+    Properties:
+      RouteTableId: !Ref BigIDScannerPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref BigIDScannerNATGateway
+
+  BigIDScannerPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BigIDScannerPublicSubnet
+      RouteTableId: !Ref BigIDScannerPublicRouteTable
+
+  BigIDScannerPrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BigIDScannerPrivateSubnet1
+      RouteTableId: !Ref BigIDScannerPrivateRouteTable
+
+  BigIDScannerPrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BigIDScannerPrivateSubnet2
+      RouteTableId: !Ref BigIDScannerPrivateRouteTable
+
+  BigIDScannerPrivateSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BigIDScannerPrivateSubnet3
+      RouteTableId: !Ref BigIDScannerPrivateRouteTable
+
+  BigIDScannerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow all outbound traffic
+      VpcId: !Ref BigIDScannerVPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: BigIDScannerEgressAllSecurityGroup
+
+Outputs:
+  BigIDScannerVPCId:
+    Description: The ID of the VPC
+    Value: !Ref BigIDScannerVPC
+    Export:
+      Name: BigIDScannerVPCId
+
+  BigIDScannerPrivateSubnet1Id:
+    Description: The ID of the first private subnet
+    Value: !Ref BigIDScannerPrivateSubnet1
+    Export:
+      Name: BigIDScannerPrivateSubnet1Id
+
+  BigIDScannerPrivateSubnet2Id:
+    Description: The ID of the second private subnet
+    Value: !Ref BigIDScannerPrivateSubnet2
+    Export:
+      Name: BigIDScannerPrivateSubnet2Id
+
+  BigIDScannerPrivateSubnet3Id:
+    Description: The ID of the third private subnet
+    Value: !Ref BigIDScannerPrivateSubnet3
+    Export:
+      Name: BigIDScannerPrivateSubnet3Id
+
+  BigIDScannerNATGatewayId:
+    Description: The ID of the NAT Gateway
+    Value: !Ref BigIDScannerNATGateway
+    Export:
+      Name: BigIDScannerNATGatewayId
+
+  BigIDScannerNATGatewayEIP:
+    Description: The Elastic IP of the NAT Gateway
+    Value: !Ref BigIDScannerNATGatewayEIP
+    Export:
+      Name: BigIDScannerNATGatewayEIP
+
+  BigIDScannerSecurityGroupId:
+    Description: The ID of the Security Group
+    Value: !Ref BigIDScannerSecurityGroup
+    Export:
+      Name: BigIDScannerSecurityGroupId

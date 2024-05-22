@@ -10,19 +10,25 @@ Conditions:
     !And
       - !Equals [ !Ref AttachManagedPolicy, "true" ]
       - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
+
 Parameters:
   VpcID:
     Description: "VPC ID for ECS Task Definition"
     Type: AWS::EC2::VPC::Id
-  SubnetName:
-    Description: "Subnet name for ECS Task Definition, please replace with the proper subnet"
+  SubnetId1:
+    Description: "Subnet ID for ECS Task Definition"
+    Type: AWS::EC2::Subnet::Id
+  SubnetId2:
+    Description: "Subnet ID for ECS Task Definition"
+    Type: AWS::EC2::Subnet::Id
+  SubnetId3:
+    Description: "Subnet ID for ECS Task Definition"
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
-      Security Group Name for ECS Task Definition, please replace with the
-      proper Security Group. Please also make sure the SG is in the same subnet
-    Type: String
-    AllowedPattern: ".+"
+      Security Group ID for ECS Task Definition, please replace with the
+      proper Security Group. Please also make sure the SG is in the same subnet.
+    Type: AWS::EC2::SecurityGroup::Id
   ImageTagVersion:
     Type: String
     Description: Setting the tag version of the scanner
@@ -100,8 +106,6 @@ Resources:
           Essential: true
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
-            - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -116,6 +120,9 @@ Resources:
               Value: !Sub "${ScannerGroupName}"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -145,8 +152,6 @@ Resources:
           Essential: true
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
-            - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -161,6 +166,9 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !Sub "${ScannerGroupName}"
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -176,8 +184,6 @@ Resources:
           Essential: true
           Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
-            - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -190,6 +196,9 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !Sub "${ScannerGroupName}"
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -218,11 +227,13 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
           SecurityGroups:
-            - !Sub "${SecurityGroupName}"
+            - !Ref SecurityGroupName
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref SubnetId1
+            - !Ref SubnetId2
+            - !Ref SubnetId3
       TaskDefinition: !Ref ScannerECSTaskDefinition
 
   ECSNERService:
@@ -235,11 +246,13 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
           SecurityGroups:
-            - !Sub "${SecurityGroupName}"
+            - !Ref SecurityGroupName
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref SubnetId1
+            - !Ref SubnetId2
+            - !Ref SubnetId3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
   ECSIAMRole:
     Type: AWS::IAM::Role
@@ -323,13 +336,42 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: "/"
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-        - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
-        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+      Policies:
+        - PolicyName: BigIDScannerPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref RefreshTokenSecret
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecs:UpdateService
+                  - ecs:RegisterTaskDefinition
+                  - ecs:DeregisterTaskDefinition
+                  - ecs:DescribeServices
+                  - ecs:DescribeTaskDefinition
+                  - ecs:DescribeTasks
+                  - ecs:CreateService
+                  - ecs:DeleteService
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:DescribeRepositories
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
