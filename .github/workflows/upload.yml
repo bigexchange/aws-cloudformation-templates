@@ -25,7 +25,7 @@ jobs:
           aws-region: us-east-1
       - name: Copy scanner.yaml to the production bucket
         run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
-      
+
 
   lambda-upload:
     needs: s3-upload
@@ -69,9 +69,9 @@ jobs:
           # Extract version
           LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
           echo "Lambda version: $LAMBDA_VERSION"
-          
+
           # Navigate to the correct directory
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
-          
+
           # Upload to S3
           aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
