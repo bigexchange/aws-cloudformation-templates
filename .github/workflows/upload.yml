@@ -6,8 +6,6 @@ on:
       - staging
       - main
       - BCO-0000-enhancements
-    paths:
-      - 'bigid/solutions/CloudNativeScanner/scanner.yaml'
   workflow_dispatch:
 
 jobs:
