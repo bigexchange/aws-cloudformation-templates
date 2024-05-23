@@ -5,6 +5,7 @@ on:
     branches:
       - staging
       - main
+      - BCO-0000-enhancements
     paths:
       - 'bigid/solutions/CloudNativeScanner/scanner.yaml'
   workflow_dispatch:
@@ -36,11 +37,14 @@ jobs:
       - name: Copy scanner.yaml to the appropriate path in the bucket
         run: |
 <<<<<<< HEAD
+<<<<<<< HEAD
           aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner.yaml --acl public-read
           aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner-${{ github.ref_name }}.yaml --acl public-read
 >>>>>>> 667d7e6 (Update upload.yml)
 =======
           aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner.yaml --acl public-read
+=======
+>>>>>>> d23a73d (BCO-0000)
           aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
 >>>>>>> 8677631 (Update upload.yml)
 
