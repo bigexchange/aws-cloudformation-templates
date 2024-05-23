@@ -26,7 +26,6 @@ jobs:
       - name: Copy scanner.yaml to the production bucket
         run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
 
-
   lambda-upload:
     needs: s3-upload
     name: Build Lambda and Push To S3
