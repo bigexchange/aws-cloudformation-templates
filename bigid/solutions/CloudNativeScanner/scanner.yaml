@@ -6,10 +6,7 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
-  ShouldAttachManagedPolicy:
-    !And
-      - !Equals [ !Ref AttachManagedPolicy, "true" ]
-      - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
+  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
 Parameters:
   VpcID:
     Description: "VPC ID for ECS Task Definition"
