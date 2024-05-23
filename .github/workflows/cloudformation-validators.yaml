@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - staging 
 
 env:
   TEMPLATE_PATH: ./bigid/solutions/CloudNativeScanner/scanner.yaml

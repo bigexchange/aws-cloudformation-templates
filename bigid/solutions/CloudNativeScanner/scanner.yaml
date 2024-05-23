@@ -10,7 +10,6 @@ Conditions:
     !And
       - !Equals [ !Ref AttachManagedPolicy, "true" ]
       - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
-
 Parameters:
   VpcID:
     Description: "VPC ID for ECS Task Definition"
