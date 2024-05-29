@@ -10,6 +10,10 @@ Conditions:
     !And
       - !Equals [ !Ref AttachManagedPolicy, "true" ]
       - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
+  UseDefaultRepository: !Equals
+    - !Ref ReplacementRepository
+    - ""
+
 Parameters:
   VpcID:
     Description: "VPC ID for ECS Task Definition"
@@ -88,6 +92,10 @@ Parameters:
     Description: The ARN of the managed policy to attach to the role ( Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true' )
     Type: String
     Default: ""
+  ReplacementRepository:
+    Description: The replacement repository URL (Leave empty to use default repository)
+    Type: String
+    Default: ""
 
 Resources:
   ECSCluster:
@@ -97,13 +105,14 @@ Resources:
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+          Image: !If
+            - UseDefaultRepository
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -142,14 +151,15 @@ Resources:
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+          Image: !If
+            - UseDefaultRepository
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -181,7 +191,10 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
+          Image: !If
+            - UseDefaultRepository
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
