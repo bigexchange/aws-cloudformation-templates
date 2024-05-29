@@ -2,14 +2,17 @@ AWSTemplateFormatVersion: 2010-09-09
 Conditions:
   IsNer: !Equals
     - !Ref NerEnabled
-    - "true"
+    - true
   IsScannerOnly: !Equals
     - !Ref NerEnabled
-    - "false"
-  ShouldAttachManagedPolicy:
-    !And
-      - !Equals [ !Ref AttachManagedPolicy, "true" ]
-      - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
+    - false
+  ShouldAttachManagedPolicy: !And
+    - !Equals [ !Ref AttachManagedPolicy, "true" ]
+    - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
+  UseDefaultRepository: !Equals
+    - !Ref ReplacementRepository
+    - ""
+
 Parameters:
   VpcID:
     Description: "VPC ID for ECS Task Definition"
@@ -35,10 +38,10 @@ Parameters:
   NerEnabled:
     Type: String
     AllowedValues:
-      - "true"
-      - "false"
+      - true
+      - false
     Description: Enable NER
-    Default: "false"
+    Default: false
   ScannerCPU:
     Type: Number
     Description: >-
@@ -101,8 +104,6 @@ Resources:
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ContainerDefinitions:
         - Name: bigid-scanner
@@ -117,9 +118,9 @@ Resources:
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
-              Value: "true"
+              Value: true
             - Name: IS_REMOTE_SCANNER
-              Value: "true"
+              Value: true
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -133,7 +134,7 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: scanner-container
-              awslogs-create-group: "true"
+              awslogs-create-group: true
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
@@ -149,8 +150,6 @@ Resources:
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       ContainerDefinitions:
@@ -166,9 +165,9 @@ Resources:
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
-              Value: "true"
+              Value: true
             - Name: IS_REMOTE_SCANNER
-              Value: "true"
+              Value: true
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
@@ -182,7 +181,7 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: scanner-container
-              awslogs-create-group: "true"
+              awslogs-create-group: true
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
@@ -201,9 +200,9 @@ Resources:
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: DISABLE_NFS_AUTOMOUNT
-              Value: "true"
+              Value: true
             - Name: IS_REMOTE_SCANNER
-              Value: "true"
+              Value: true
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -215,7 +214,7 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: scanner-ner-container
-              awslogs-create-group: "true"
+              awslogs-create-group: true
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
