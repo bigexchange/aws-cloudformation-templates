@@ -29,9 +29,9 @@ jobs:
         run: |
           # Upload to S3
           if [ "${GITHUB_REF_NAME}" == "main" ]; then
-            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner.yaml --acl public-read
+            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner.yaml --acl public-read
           else
-            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/bigid/solutions/CloudNativeScanner/scanner-${{ github.ref_name }}.yaml --acl public-read
+            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
           fi
 
   lambda-upload:
