@@ -15,7 +15,7 @@ Conditions:
 
 Parameters:
   VpcID:
-    Description: "VPC ID for ECS Task Definition"
+    Description: "The VPC ID to use for the ECS Task Definition."
     Type: AWS::EC2::VPC::Id
   SubnetId1:
     Description: "Subnet ID for ECS Task Definition"
@@ -32,63 +32,64 @@ Parameters:
       proper Security Group. Please also make sure the SG is in the same subnet.
     Type: AWS::EC2::SecurityGroup::Id
   ImageTagVersion:
+    Description: "The tag version of the scanner image."
     Type: String
-    Description: Setting the tag version of the scanner
     AllowedPattern: ".+"
   NerEnabled:
+    Description: "Enable Named Entity Recognition (NER)."
     Type: String
     AllowedValues:
       - true
       - false
-    Description: Enable NER
     Default: false
   ScannerCPU:
-    Type: Number
     Description: >-
-      Scanner CPU Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
+      The amount of CPU units to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048).
+    Type: Number
     Default: 8192
   ScannerMemory:
-    Type: Number
     Description: >-
-      Scanner Memory Please use the increments provided by Amazon
-      "256,512,1024,2048..etc"
+      The amount of memory (in MB) to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048).
+    Type: Number
     Default: 32768
   ScannerHostName:
+    Description: "The hostname for the scanner."
     Type: String
-    Description: >-
-      Scanner Host Name
     Default: remote-scanner
   ScannerGroupName:
+    Description: "The group name for the scanner."
     Type: String
-    Description: >-
-      Scanner Group Name
     Default: remote-scanner
   BigIDRefreshToken:
     NoEcho: true
+    Description: "The refresh token for BigID."
     Type: String
-    Description: BigID Refresh Token
   BigIDHostname:
+    Description: "The hostname for BigID (e.g., test.bigid.cloud). Do not include the protocol (http:// or https://)."
     Type: String
-    Description: "E.G: test.bigid.cloud (Please Do Not Include the Protocol http:// or https://)"
     AllowedPattern: ".+"
   MaximumScannerCount:
+    Description: "The maximum number of BigID scanner instances (replicas) to run."
     Type: String
-    Description: Maximum BigID Scanner Count(Maximum Replicas of Scanners)
     Default: "3"
   MinimumScannerCount:
+    Description: "The minimum number of BigID scanner instances (replicas) to run."
     Type: String
-    Description: Minimum BigID Scanner Count(Maximum Replicas of Scanners)
     Default: "1"
+  ScheduleExpression:
+    Description: "The schedule expression for the scaling Lambda"
+    Type: String
+    Default: "rate(10 minutes)"
   AttachManagedPolicy:
-    Description: Whether to attach a managed policy
+    Description: "Indicate whether to attach a managed policy to the role."
     Type: String
     Default: "false"
     AllowedValues:
       - "true"
       - "false"
   ManagedPolicyArn:
-    Description: The ARN of the managed policy to attach to the role ( Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true' )
+    Description: >-
+      The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'.
     Type: String
     Default: ""
   ReplacementRepository:
@@ -387,7 +388,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       Name: ECSScalerRule
-      ScheduleExpression: "rate(10 minutes)" # Schedule to trigger every 10 minutes
+      ScheduleExpression: !Ref ScheduleExpression # Schedule to trigger every 10 minutes
       State: ENABLED # Enable the rule
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
