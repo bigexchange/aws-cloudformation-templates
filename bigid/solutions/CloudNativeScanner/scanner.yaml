@@ -7,6 +7,7 @@ Conditions:
     - !Ref NerEnabled
     - false
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
+  UseDefaultRepository: !Equals [!Ref ReplacementRepository, "true"]
 Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
