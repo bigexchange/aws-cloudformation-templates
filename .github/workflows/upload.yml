@@ -3,9 +3,7 @@ name: AWS Cloudformation Templates Actions
 on:
   push:
     branches:
-      - staging
-      - main
-      - BCO-0000-enhancements
+      - '*'
   workflow_dispatch:
 
 jobs:
