@@ -6,22 +6,7 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
-<<<<<<< HEAD
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
-=======
-<<<<<<< HEAD
-  ShouldAttachManagedPolicy:
-    !And
-      - !Equals [ !Ref AttachManagedPolicy, "true" ]
-      - !Not [ !Equals [ !Ref ManagedPolicyArn, "" ] ]
-  ShouldCreateRefreshTokenSecret:
-    !And
-      - !Equals [!Ref BigIDRefreshSecretArn, ""]
-      - !Not [!Equals [!Ref BigIDRefreshToken, ""]]
-=======
-  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
->>>>>>> 19a5f97 (CDK generation sanity check pipeline)
->>>>>>> 9e13ae4 (CDK generation sanity check pipeline)
 Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
