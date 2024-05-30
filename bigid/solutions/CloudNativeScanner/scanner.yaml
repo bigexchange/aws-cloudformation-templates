@@ -93,8 +93,6 @@ Resources:
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ContainerDefinitions:
         - Name: bigid-scanner
@@ -140,8 +138,6 @@ Resources:
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       ContainerDefinitions:
