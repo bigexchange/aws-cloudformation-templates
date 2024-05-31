@@ -7,6 +7,7 @@ Conditions:
     - !Ref NerEnabled
     - false
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
+  UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
 Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
@@ -80,6 +81,10 @@ Parameters:
       The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'.
     Type: String
     Default: ""
+  ReplacementRepository:
+    Description: The replacement repository URL (Leave empty to use default repository)
+    Type: String
+    Default: ""
 
 Resources:
   ECSCluster:
@@ -89,13 +94,14 @@ Resources:
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+          Image: !If
+            - UseDefaultRepository
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_REFRESH_TOKEN
               Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
@@ -133,17 +139,16 @@ Resources:
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
-    DependsOn:
-      - RefreshTokenSecret
     Properties:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+          Image: !If
+            - UseDefaultRepository
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
-            - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -158,6 +163,11 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !Sub "${ScannerGroupName}"
+            - Name: RDS_SNAPSCAN_VPC_ID
+              Value: !Ref VpcID
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -171,10 +181,11 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
+          Image: !If
+            - UseDefaultRepository
+            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
-            - Name: BIGID_REFRESH_TOKEN
-              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -187,6 +198,11 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !Sub "${ScannerGroupName}"
+            - Name: RDS_SNAPSCAN_VPC_ID
+              Value: !Ref VpcID
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -320,13 +336,42 @@ Resources:
             Action:
               - sts:AssumeRole
       Path: "/"
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-        - arn:aws:iam::aws:policy/AWSCloudTrail_FullAccess
-        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+      Policies:
+        - PolicyName: BigIDScannerPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref RefreshTokenSecret
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecs:UpdateService
+                  - ecs:RegisterTaskDefinition
+                  - ecs:DeregisterTaskDefinition
+                  - ecs:DescribeServices
+                  - ecs:DescribeTaskDefinition
+                  - ecs:DescribeTasks
+                  - ecs:CreateService
+                  - ecs:DeleteService
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:DescribeRepositories
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
