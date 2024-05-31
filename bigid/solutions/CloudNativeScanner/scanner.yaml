@@ -306,6 +306,7 @@ Resources:
       Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       ReservedConcurrentExecutions: 1
+      Timeout: 30
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
         S3Key: ecs-scaler-lambda-v1.0.2.zip
