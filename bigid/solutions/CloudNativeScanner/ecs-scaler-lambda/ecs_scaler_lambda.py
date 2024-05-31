@@ -107,6 +107,15 @@ def iterate_scanners(system_token, hostname, scanner_group):
         running.append(status.get("data")[0].get("running", 0))
     return any(running)
 
+def get_groupless_scans(system_token,hostname):
+    url = f"https://{hostname}/api/v1/scans/parent-scans"
+    headers = {"Authorization": system_token}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        scans = data.get("scanParents")
+        queued = [True for scan in scans if scan.get('progress', {}).get('state', '') == 'Queued']
+        return any(queued) 
 
 def main(
     refresh_token_secret_id,
@@ -121,11 +130,12 @@ def main(
     refresh_token = get_secret(refresh_token_secret_id, region_name)
     system_token = get_token(refresh_token, hostname)
     if system_token:
-        jobs = get_scans_jobs(hostname, system_token)
-        if not jobs:
-            return "No Jobs"
+        # jobs = get_scans_jobs(hostname, system_token)
+        # if not jobs:
+        #     return "No Jobs"
 
-        running = iterate_scanners(system_token, hostname, scanner_group)
+        # running = iterate_scanners(system_token, hostname, scanner_group)
+        running = get_groupless_scans(system_token, hostname)
         
         if not running:
             desired_count = minimum_desired_count
