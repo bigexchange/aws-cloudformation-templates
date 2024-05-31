@@ -63,7 +63,7 @@ Parameters:
     Default: "3"
   MinimumScannerCount:
     Description: "The minimum number of BigID scanner instances (replicas) to run."
-    Type: String
+    Type: Number
     Default: "1"
   ScheduleExpression:
     Description: "The schedule expression for the scaling Lambda"
@@ -103,6 +103,8 @@ Resources:
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
             - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
+            - Name: BIGID_REFRESH_TOKEN
+              Value: '{{resolve:secretsmanager:bigid-scanner-token::::}}'
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
@@ -117,9 +119,6 @@ Resources:
               Value: !Sub "${ScannerGroupName}"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets:
-            - Name: BIGID_REFRESH_TOKEN             
-              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
