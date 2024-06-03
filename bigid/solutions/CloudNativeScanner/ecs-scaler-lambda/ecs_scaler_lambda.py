@@ -129,10 +129,9 @@ def main(
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
         # If there are more active scanners than needed, scale down the scanner count.
-        if not jobs and running:
-            if len(scanners) > minimum_desired_count:
-                desired_count = minimum_desired_count
-                print("Scaling Down")
+        if not jobs and len(scanners) > minimum_desired_count:
+            desired_count = minimum_desired_count
+            print("Scaling Down")
         elif jobs and len(scanners) < int(desired_count):
             desired_count = desired_count
             print("Scaling up Scanners")
