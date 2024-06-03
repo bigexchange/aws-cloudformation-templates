@@ -73,13 +73,15 @@ def scale_ecs_task_definition(cluster_name, service_name, desired_count, region_
 # Function to Get Scan Jobs
 
 
-def get_scans_jobs(hostname, system_token):
+def get_scans_jobs(hostname, system_token,scanner_group):
     url = f"https://{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json()
-        return bool(data.get("results"))
+        scanner_group_jobs = [r for r in data.get("results") if r.get("group") == scanner_group]
+        return bool(scanner_group_jobs)
+
     raise Exception(f"Scanner Jobs Return:{response.status_code}")
 
 
@@ -91,7 +93,7 @@ def get_scanners(system_token, url):
     data = response.json()
     return data
 
-
+# Gets all the scanner ID's for a giving scanner group and returns 0 if there are no scanners are working
 def iterate_scanners(system_token, hostname, scanner_group):
     url = f"https://{hostname}/api/v1/scanner-status"
     scanners = get_scanners(system_token, url)
