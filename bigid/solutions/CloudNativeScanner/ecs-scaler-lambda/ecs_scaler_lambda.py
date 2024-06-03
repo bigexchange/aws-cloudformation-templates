@@ -124,7 +124,6 @@ def main(
     system_token = get_token(refresh_token, hostname)
     if system_token:
         jobs = get_scans_jobs(hostname, system_token,scanner_group)
-        running = iterate_scanners(system_token, hostname, scanner_group)
         scanners = get_scanner_list(system_token,hostname, scanner_group)
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
