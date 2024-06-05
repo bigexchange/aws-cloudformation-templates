@@ -59,12 +59,12 @@ Parameters:
     AllowedPattern: ".+"
   MaximumScannerCount:
     Description: "The maximum number of BigID scanner instances (replicas) to run."
-    Type: String
-    Default: "3"
+    Type: Number
+    Default: 3
   MinimumScannerCount:
-    Description: "The minimum number of BigID scanner instances (replicas) to run."
-    Type: String
-    Default: "1"
+    Description: "The minimum number of scanner Replicas, to scale from 0 set VALIDATE_SCANNER_GROUP=false for Orch, in BigID UI."
+    Type: Number
+    Default: 1
   ScheduleExpression:
     Description: "The schedule expression for the scaling Lambda"
     Type: String
@@ -306,6 +306,7 @@ Resources:
       FunctionName: ECSScalerLambda
       Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
@@ -402,12 +403,12 @@ Resources:
                 - '"region_name":"'
                 - !Ref "AWS::Region"
                 - '",'
-                - '"minimum_desired_count":"'
+                - '"minimum_desired_count":'
                 - !Ref MinimumScannerCount
-                - '",'
-                - '"desired_count":"'
+                - ','
+                - '"desired_count":'
                 - !Ref MaximumScannerCount
-                - '"}'
+                - '}'
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
