@@ -69,29 +69,21 @@ def scale_ecs_task_definition(cluster_name, service_name, desired_count, region_
     print(f"{response=}")
     return response  # Return the response from the update_service call
 
+
 # Function to Get Scan Jobs
-def get_scans_jobs(hostname, system_token,scanner_group):
+
+
+def get_scans_jobs(hostname, system_token):
     url = f"https://{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json()
-        scanner_group_jobs = [r for r in data.get("results") if r.get("group") == scanner_group]
-        return bool(scanner_group_jobs)
+        return bool(data.get("results"))
     raise Exception(f"Scanner Jobs Return:{response.status_code}")
 
-def get_scanner_list(system_token, hostname, scanner_group):
-    scanners = get_scanners(system_token,hostname)
-    scanners = scanners.get("data")
-    scanners = [
-        scanner for scanner in scanners if scanner.get("scanner_group") == scanner_group
-    ]
-    return scanners
 
-def get_scanners(system_token,hostname,scanner_id=None):
-    url = f"https://{hostname}/api/v1/scanner-status"
-    if scanner_id:
-        url = f"{url}/{scanner_id}"
+def get_scanners(system_token, url):
     headers = {"Authorization": system_token}
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
@@ -99,13 +91,19 @@ def get_scanners(system_token,hostname,scanner_id=None):
     data = response.json()
     return data
 
-# Gets all the scanner ID's for a giving scanner group and returns 0 if there are no scanners are working
+
 def iterate_scanners(system_token, hostname, scanner_group):
-    scanners = get_scanner_list(system_token,hostname, scanner_group)
+    url = f"https://{hostname}/api/v1/scanner-status"
+    scanners = get_scanners(system_token, url)
+    scanners = scanners.get("data")
+    scanners = [
+        scanner for scanner in scanners if scanner.get("scanner_group") == scanner_group
+    ]
     running = []
     for scanner in scanners:
         scanner_id = scanner.get("scanner_id")
-        status = get_scanners(system_token, hostname, scanner_id)
+        scanner_status_url = f"{url}/{scanner_id}"
+        status = get_scanners(system_token, scanner_status_url)
         running.append(status.get("data")[0].get("running", 0))
     return any(running)
 
@@ -123,17 +121,14 @@ def main(
     refresh_token = get_secret(refresh_token_secret_id, region_name)
     system_token = get_token(refresh_token, hostname)
     if system_token:
-        jobs = get_scans_jobs(hostname, system_token,scanner_group)
-        scanners = get_scanner_list(system_token,hostname, scanner_group)
-        # If there are no queued scans and active scanners are present,
-        # check if the number of active scanners exceeds the desired minimum count.
-        # If there are more active scanners than needed, scale down the scanner count.
-        if not jobs and len(scanners) > minimum_desired_count:
+        jobs = get_scans_jobs(hostname, system_token)
+        if not jobs:
+            return "No Jobs"
+
+        running = iterate_scanners(system_token, hostname, scanner_group)
+        
+        if not running:
             desired_count = minimum_desired_count
-            print("Scaling Down")
-        elif jobs and len(scanners) < int(desired_count):
-            desired_count = desired_count
-            print("Scaling up Scanners")
         # Get scans and scale ECS task definition based on the result
         result = scale_ecs_task_definition(
             cluster_name,
@@ -144,6 +139,7 @@ def main(
         return result
     else:
         return None
+
 
 # Lambda entry point
 def lambda_handler(event, context):
@@ -165,10 +161,10 @@ def lambda_handler(event, context):
         scanner_group,
         minimum_desired_count,
     )
-    if result == "Scaling down":
+    if result == "No Jobs":
         return {
             "statusCode": 202,
-            "body": "Scaling scanners down to 0",
+            "body": "No Jobs Running",
         }
     elif result is not None:
         # Return a 200 response with a success message

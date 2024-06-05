@@ -41,25 +41,9 @@ https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/
 | NerEnabled        | `false`                                      | Bool   |
 | ScannerCount      | `3`                                          | Int    |
 
-
-## Enable Scaling from Zero
-In order to scale from 0, there are some preliminary things that will need to be done in order to get the functionality of scale to zero to work. We will need to work in the following steps.
-
-### Edit the BigID UI
-#### Step 1.a
- Go to the BigID UI and go to the Advanced Tools Section
-#### Step 2.a
-Search for `VALIDATE_SCANNER_GROUP`
-### Step 3.a
-Change the environemnt variable from `true` to `false`
-
-**Once this is completed, you will have to modify your DataSource to be able to be pointed to whichever scanner group is designated within the Cloudformation Template `ScannerGroupName`, this will allow the Scanner to be able to recieve work. If you do not set this the scanner will never recieve work, please consult your Services Engineer, if you need any assistance in modifying this datasources group name.**
-
-
 ## ECS Diagram
 
 ![ecsdiagram](https://github.com/bigexchange/aws-cloudformation-templates/assets/34100385/6d972dba-70bc-4f90-b407-56762a8581ed)
-
 
 ### ECS Diagram Explanation
 
@@ -83,4 +67,3 @@ Scanner Pod that is scaled out from the Task Definition
 ##### BigID Ner 
 
 Sidecar container in tandem with scanner pod that utilizes NER
-
