@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
+
 Conditions:
   IsNer: !Equals
     - !Ref NerEnabled
@@ -8,6 +9,11 @@ Conditions:
     - false
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
+  IsManualGroupName: !Equals [!Ref ScannerGroupOption, "Manual"]
+  IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
+  IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
+  IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
+
 Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
@@ -45,10 +51,19 @@ Parameters:
     Description: "The hostname for the scanner."
     Type: String
     Default: remote-scanner
-  ScannerGroupName:
-    Description: "The group name for the scanner."
+  ScannerGroupOption:
     Type: String
-    Default: remote-scanner
+    Default: "Manual"
+    AllowedValues:
+      - Region
+      - AccountID
+      - AccountID-Region
+      - Manual
+    Description: "Option to set the Scanner Group Name."
+  ScannerGroupName:
+    Description: "The Scanner Group Name if Manual option is selected."
+    Type: String
+    Default: ""
   BigIDRefreshToken:
     NoEcho: true
     Description: "The refresh token for BigID."
@@ -91,6 +106,7 @@ Resources:
     Type: "AWS::ECS::Cluster"
     Properties:
       ClusterName: BigIDScannerCluster
+
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
@@ -114,7 +130,16 @@ Resources:
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
-              Value: !Sub "${ScannerGroupName}"
+              Value: !If
+                - IsManualGroupName
+                - !Ref ScannerGroupName
+                - !If
+                    - IsRegionGroupName
+                    - !Sub "${AWS::Region}"
+                    - !If
+                        - IsAccountIDGroupName
+                        - !Ref "AWS::AccountId"
+                        - !Sub "${AWS::AccountId}-${AWS::Region}"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
           Secrets:
@@ -137,6 +162,7 @@ Resources:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
+
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
@@ -163,7 +189,16 @@ Resources:
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
-              Value: !Sub "${ScannerGroupName}"
+              Value: !If
+                - IsManualGroupName
+                - !Ref ScannerGroupName
+                - !If
+                    - IsRegionGroupName
+                    - !Sub "${AWS::Region}"
+                    - !If
+                        - IsAccountIDGroupName
+                        - !Ref "AWS::AccountId"
+                        - !Sub "${AWS::AccountId}-${AWS::Region}"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
           Secrets:
@@ -198,7 +233,16 @@ Resources:
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
-              Value: !Sub "${ScannerGroupName}"
+              Value: !If
+                - IsManualGroupName
+                - !Ref ScannerGroupName
+                - !If
+                    - IsRegionGroupName
+                    - !Sub "${AWS::Region}"
+                    - !If
+                        - IsAccountIDGroupName
+                        - !Ref "AWS::AccountId"
+                        - !Sub "${AWS::AccountId}-${AWS::Region}"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
           Secrets:
@@ -222,6 +266,7 @@ Resources:
         SizeInGiB: 200
       RequiresCompatibilities:
         - FARGATE
+
   ECSScannerService:
     Type: "AWS::ECS::Service"
     Condition: IsScannerOnly
@@ -255,6 +300,7 @@ Resources:
           Subnets:
             - !Sub "${SubnetName}"
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
+
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -300,6 +346,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSIAMRole
+
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
     Properties:
@@ -312,11 +359,13 @@ Resources:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
         S3Key: ecs-scaler-lambda-v1.0.2.zip
       Runtime: python3.11
+
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref ECSScalerLambda
       Description: v1.0.2
+
   LambdaEventPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -324,6 +373,7 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EventBridgeRule.Arn
+
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -374,6 +424,7 @@ Resources:
                   - ecr:DescribeRepositories
                   - ecr:GetAuthorizationToken
                 Resource: "*"
+
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
@@ -396,7 +447,16 @@ Resources:
                 - !Ref ECSCluster
                 - '",'
                 - '"scanner_group":"'
-                - !Ref ScannerGroupName
+                - !If
+                    - IsManualGroupName
+                    - !Ref ScannerGroupName
+                    - !If
+                        - IsRegionGroupName
+                        - !Sub "${AWS::Region}"
+                        - !If
+                            - IsAccountIDGroupName
+                            - !Ref "AWS::AccountId"
+                            - !Sub "${AWS::AccountId}-${AWS::Region}"
                 - '",'
                 - '"service_name":"bigid-scanner-service'
                 - '",'
@@ -409,14 +469,13 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
+
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
       Description: BigID Scanner Token
       Name: bigid-scanner-token
-      SecretString:
-        !Ref BigIDRefreshToken
+      SecretString: !Ref BigIDRefreshToken
       Tags:
-        -
-          Key: Name
+        - Key: Name
           Value: scanner-refresh-token
