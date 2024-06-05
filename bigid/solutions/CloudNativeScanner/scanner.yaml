@@ -62,7 +62,7 @@ Parameters:
     Type: Number
     Default: 3
   MinimumScannerCount:
-    Description: "The minimum number of BigID scanner instances (replicas) to run."
+    Description: "The minimum number of scanner Replicas, to scale from 0 set VALIDATE_SCANNER_GROUP=false for Orch, in BigID UI."
     Type: Number
     Default: 1
   ScheduleExpression:
