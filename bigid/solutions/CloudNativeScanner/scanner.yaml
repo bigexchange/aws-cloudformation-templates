@@ -139,7 +139,10 @@ Resources:
                     - !If
                         - IsAccountIDGroupName
                         - !Ref "AWS::AccountId"
-                        - !Sub "${AWS::AccountId}-${AWS::Region}"
+                        - !If
+                            - IsAccountIDRegionGroupName
+                            - !Sub "${AWS::AccountId}-${AWS::Region}"
+                            - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
           Secrets:
@@ -198,7 +201,10 @@ Resources:
                     - !If
                         - IsAccountIDGroupName
                         - !Ref "AWS::AccountId"
-                        - !Sub "${AWS::AccountId}-${AWS::Region}"
+                        - !If
+                            - IsAccountIDRegionGroupName
+                            - !Sub "${AWS::AccountId}-${AWS::Region}"
+                            - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
           Secrets:
@@ -242,7 +248,10 @@ Resources:
                     - !If
                         - IsAccountIDGroupName
                         - !Ref "AWS::AccountId"
-                        - !Sub "${AWS::AccountId}-${AWS::Region}"
+                        - !If
+                            - IsAccountIDRegionGroupName
+                            - !Sub "${AWS::AccountId}-${AWS::Region}"
+                            - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
           Secrets:
@@ -456,7 +465,10 @@ Resources:
                         - !If
                             - IsAccountIDGroupName
                             - !Ref "AWS::AccountId"
-                            - !Sub "${AWS::AccountId}-${AWS::Region}"
+                            - !If
+                                - IsAccountIDRegionGroupName
+                                - !Sub "${AWS::AccountId}-${AWS::Region}"
+                                - !Ref "AWS::NoValue"
                 - '",'
                 - '"service_name":"bigid-scanner-service'
                 - '",'
