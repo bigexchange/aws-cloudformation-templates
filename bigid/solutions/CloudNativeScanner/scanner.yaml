@@ -9,7 +9,7 @@ Conditions:
     - false
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
-  IsManualGroupName: !Equals [!Ref ScannerGroupOption, "Manual"]
+  IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
@@ -24,12 +24,21 @@ Parameters:
   SecurityGroupName:
     Description: >-
       The name of the security group to use for the ECS Task Definition. Please provide the appropriate security group name and ensure the security group is in the same subnet.
-    Type: String
+    Type: AWS::EC2::SecurityGroup::Id
     AllowedPattern: ".+"
   ImageTagVersion:
     Description: "The tag version of the scanner image."
     Type: String
     AllowedPattern: ".+"
+  ScannerGroupOption:
+    Type: String
+    Default: "Custom"
+    AllowedValues:
+      - Region
+      - AccountID
+      - AccountID-Region
+      - Custom
+    Description: "Option to set the Scanner Group Name."
   NerEnabled:
     Description: "Enable Named Entity Recognition (NER)."
     Type: String
@@ -51,19 +60,10 @@ Parameters:
     Description: "The hostname for the scanner."
     Type: String
     Default: remote-scanner
-  ScannerGroupOption:
-    Type: String
-    Default: "Manual"
-    AllowedValues:
-      - Region
-      - AccountID
-      - AccountID-Region
-      - Manual
-    Description: "Option to set the Scanner Group Name."
   ScannerGroupName:
-    Description: "The Scanner Group Name if Manual option is selected."
+    Description: "The Scanner Group Name if Custom option is selected."
     Type: String
-    Default: ""
+    Default: "remote-scanner"
   BigIDRefreshToken:
     NoEcho: true
     Description: "The refresh token for BigID."
@@ -131,7 +131,7 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
-                - IsManualGroupName
+                - IsCustomGroupName
                 - !Ref ScannerGroupName
                 - !If
                     - IsRegionGroupName
@@ -193,7 +193,7 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
-                - IsManualGroupName
+                - IsCustomGroupName
                 - !Ref ScannerGroupName
                 - !If
                     - IsRegionGroupName
@@ -240,7 +240,7 @@ Resources:
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
-                - IsManualGroupName
+                - IsCustomGroupName
                 - !Ref ScannerGroupName
                 - !If
                     - IsRegionGroupName
@@ -457,7 +457,7 @@ Resources:
                 - '",'
                 - '"scanner_group":"'
                 - !If
-                    - IsManualGroupName
+                    - IsCustomGroupName
                     - !Ref ScannerGroupName
                     - !If
                         - IsRegionGroupName
