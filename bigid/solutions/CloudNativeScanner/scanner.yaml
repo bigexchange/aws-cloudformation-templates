@@ -60,7 +60,7 @@ Parameters:
     Description: "The hostname for the scanner."
     Type: String
     Default: remote-scanner
-  ScannerGroupName:
+  CustomScannerGroupName:
     Description: "The Scanner Group Name if Custom option is selected."
     Type: String
     Default: "remote-scanner"
@@ -132,7 +132,7 @@ Resources:
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
-                - !Ref ScannerGroupName
+                - !Ref CustomScannerGroupName
                 - !If
                     - IsRegionGroupName
                     - !Sub "${AWS::Region}"
@@ -194,7 +194,7 @@ Resources:
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
-                - !Ref ScannerGroupName
+                - !Ref CustomScannerGroupName
                 - !If
                     - IsRegionGroupName
                     - !Sub "${AWS::Region}"
@@ -241,7 +241,7 @@ Resources:
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
-                - !Ref ScannerGroupName
+                - !Ref CustomScannerGroupName
                 - !If
                     - IsRegionGroupName
                     - !Sub "${AWS::Region}"
@@ -458,7 +458,7 @@ Resources:
                 - '"scanner_group":"'
                 - !If
                     - IsCustomGroupName
-                    - !Ref ScannerGroupName
+                    - !Ref CustomScannerGroupName
                     - !If
                         - IsRegionGroupName
                         - !Sub "${AWS::Region}"
