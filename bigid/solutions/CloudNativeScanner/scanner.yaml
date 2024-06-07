@@ -18,8 +18,14 @@ Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
     Type: AWS::EC2::VPC::Id
-  SubnetName:
-    Description: "The subnet name to use for the ECS Task Definition. Please provide the appropriate subnet ID."
+  Subnet1:
+    Description: "The first subnet ID to use for the ECS Task Definition."
+    Type: AWS::EC2::Subnet::Id
+  Subnet2:
+    Description: "The second subnet ID to use for the ECS Task Definition."
+    Type: AWS::EC2::Subnet::Id
+  Subnet3:
+    Description: "The third subnet ID to use for the ECS Task Definition."
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
@@ -290,7 +296,9 @@ Resources:
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerECSTaskDefinition
 
   ECSNERService:
@@ -307,7 +315,9 @@ Resources:
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
 
   ECSIAMRole:
