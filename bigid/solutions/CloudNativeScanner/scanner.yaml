@@ -9,8 +9,8 @@ Conditions:
     - false
   ShouldCreateRefreshTokenSecret:
     !And
-      - !Equals [!Ref BigIDRefreshSecretArn, ""]
-      - !Not [!Equals [!Ref BigIDRefreshToken, ""]]
+      - !Not [!Equals [!Ref BigIDRefreshSecretArn, ""]]
+      - !Equals [!Ref BigIDRefreshToken, ""]
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
