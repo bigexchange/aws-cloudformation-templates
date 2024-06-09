@@ -33,6 +33,7 @@ jobs:
             aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
           fi
 
+
   lambda-upload:
     needs: s3-upload
     name: Build Lambda and Push To S3
