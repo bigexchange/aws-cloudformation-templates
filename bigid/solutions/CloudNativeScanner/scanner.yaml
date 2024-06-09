@@ -446,7 +446,11 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !Ref RefreshTokenSecret
+                Resource:
+                  Fn::If:
+                    - ShouldCreateRefreshTokenSecret
+                    - !Ref RefreshTokenSecret
+                    - !Ref BigIDRefreshSecretArn
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
