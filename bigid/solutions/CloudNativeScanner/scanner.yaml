@@ -11,10 +11,10 @@ Conditions:
     Fn::And:
       - Fn::Not:
           - Fn::Equals:
-              - Ref: BigIDRefreshSecretArn
+              - Ref: BigIDRefreshToken
               - ""
       - Fn::Equals:
-          - Ref: BigIDRefreshToken
+          - Ref: BigIDRefreshSecretArn
           - ""
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
