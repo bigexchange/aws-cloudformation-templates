@@ -7,10 +7,11 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
-  ShouldCreateRefreshTokenSecret:
-    !And
-      - !Not [!Equals [!Ref BigIDRefreshSecretArn, ""]]
-      - !Equals [!Ref BigIDRefreshToken, ""]
+  IsBigIDRefreshSecretArnNotEmpty: !Not [!Equals [!Ref BigIDRefreshSecretArn, ""]]
+  IsBigIDRefreshTokenEmpty: !Equals [!Ref BigIDRefreshToken, ""]
+  ShouldCreateRefreshTokenSecret: !And
+    - !Condition IsBigIDRefreshSecretArnNotEmpty
+    - !Condition IsBigIDRefreshTokenEmpty
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
