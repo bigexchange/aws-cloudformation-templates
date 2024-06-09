@@ -12,10 +12,10 @@ Conditions:
       - Fn::Not:
           - Fn::Equals:
               - Ref: BigIDRefreshSecretArn
-              - ''
+              - ""
       - Fn::Equals:
           - Ref: BigIDRefreshToken
-          - ''
+          - ""
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
