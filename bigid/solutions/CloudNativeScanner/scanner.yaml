@@ -530,3 +530,4 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
+                
