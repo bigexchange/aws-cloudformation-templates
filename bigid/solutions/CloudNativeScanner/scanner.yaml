@@ -106,7 +106,13 @@ Parameters:
     Description: The replacement repository URL (Leave empty to use default repository)
     Type: String
     Default: ""
-
+  AssignPublicIp:
+    Type: String
+    Default: ENABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: "Specifies whether to assign a public IP address to the ECS service. Default is ENABLED. If set to DISABLED, ensure your subnet configuration supports outbound traffic."
 Resources:
   ECSCluster:
     Type: "AWS::ECS::Cluster"
