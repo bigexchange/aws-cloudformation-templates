@@ -1,10 +1,6 @@
 name: CDK autogen sanity check
-
 on:
   pull_request:
-    branches:
-      - '*'
-
 jobs:
   cdk-check:
     runs-on: ubuntu-latest

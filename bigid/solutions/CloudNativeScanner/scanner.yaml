@@ -7,15 +7,6 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
-  ShouldCreateRefreshTokenSecret:
-    Fn::And:
-      - Fn::Not:
-          - Fn::Equals:
-              - Ref: BigIDRefreshToken
-              - ""
-      - Fn::Equals:
-          - Ref: BigIDRefreshSecretArn
-          - ""
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
@@ -77,11 +68,6 @@ Parameters:
     NoEcho: true
     Description: "The refresh token for BigID."
     Type: String
-    Default: ""
-  BigIDRefreshSecretArn:
-    Type: String
-    Description: The ARN of the existing secret to use for BigID Scanner Token (Optional)
-    Default: ""
   BigIDHostname:
     Description: "The hostname for BigID (e.g., test.bigid.cloud). Do not include the protocol (http:// or https://)."
     Type: String
@@ -116,16 +102,6 @@ Parameters:
     Default: ""
 
 Resources:
-  RefreshTokenSecret:
-    Type: AWS::SecretsManager::Secret
-    Condition: ShouldCreateRefreshTokenSecret
-    Properties:
-      Description: "BigID Scanner Token"
-      Name: "bigid-scanner-token"
-      SecretString: !Ref BigIDRefreshToken
-      Tags:
-        - Key: Name
-          Value: "scanner-refresh-token"
   ECSCluster:
     Type: "AWS::ECS::Cluster"
     Properties:
@@ -169,15 +145,9 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -237,15 +207,9 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -290,15 +254,9 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -447,11 +405,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource:
-                  Fn::If:
-                    - ShouldCreateRefreshTokenSecret
-                    - !Ref RefreshTokenSecret
-                    - !Ref BigIDRefreshSecretArn
+                Resource: !Ref RefreshTokenSecret
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
@@ -493,10 +447,7 @@ Resources:
             InputTemplate: !Join
               - ""
               - - '{"refresh_token_secret_id":"'
-                - !If 
-                  - ShouldCreateRefreshTokenSecret
-                  - "bigid-scanner-token"
-                  - !Ref BigIDRefreshSecretArn
+                - !Ref RefreshTokenSecret
                 - '",'
                 - '"host_name":"'
                 - !Ref BigIDHostname
@@ -530,4 +481,13 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
-                
+
+  RefreshTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: BigID Scanner Token
+      Name: bigid-scanner-token
+      SecretString: !Ref BigIDRefreshToken
+      Tags:
+        - Key: Name
+          Value: scanner-refresh-token
