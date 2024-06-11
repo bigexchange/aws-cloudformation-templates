@@ -355,6 +355,7 @@ Resources:
               [
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
                 "ecr:GetDownloadUrlForLayer",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
