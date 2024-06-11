@@ -129,16 +129,6 @@ Parameters:
       - "DISABLED"
 
 Resources:
-  RefreshTokenSecret:
-    Type: AWS::SecretsManager::Secret
-    Condition: ShouldCreateRefreshTokenSecret
-    Properties:
-      Description: "BigID Scanner Token"
-      Name: "bigid-scanner-token"
-      SecretString: !Ref BigIDRefreshToken
-      Tags:
-        - Key: Name
-          Value: "scanner-refresh-token"
   ECSCluster:
     Type: "AWS::ECS::Cluster"
     Properties:
