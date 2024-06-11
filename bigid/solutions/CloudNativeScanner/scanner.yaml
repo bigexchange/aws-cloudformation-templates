@@ -106,6 +106,13 @@ Parameters:
     Description: The replacement repository URL (Leave empty to use default repository)
     Type: String
     Default: ""
+  AssignPublicIp:
+    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress."
+    Type: String
+    Default: "ENABLED"
+    AllowedValues:
+      - "ENABLED"
+      - "DISABLED"
 
 Resources:
   ECSCluster:
@@ -289,7 +296,7 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
@@ -307,7 +314,7 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
@@ -349,7 +356,6 @@ Resources:
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
                 "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
                 "logs:CreateLogGroup",
