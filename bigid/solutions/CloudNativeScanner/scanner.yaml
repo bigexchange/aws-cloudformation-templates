@@ -120,10 +120,6 @@ Parameters:
     Description: The replacement repository URL (Leave empty to use default repository)
     Type: String
     Default: ""
-  ReplacementNerRepository:
-    Description: The replacement repository URL for NER (Leave empty to use default repository)
-    Type: String
-    Default: ""
   AssignPublicIp:
     Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress."
     Type: String
@@ -156,8 +152,7 @@ Resources:
           Image: !If
             - UseDefaultRepository
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Sub "${ReplacementRepository}"
-            - !Sub "${ReplacementNerRepository}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -223,7 +218,7 @@ Resources:
           Image: !If
             - UseDefaultRepository
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Sub "${ReplacementRepository}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -278,7 +273,7 @@ Resources:
           Image: !If
             - UseDefaultRepository
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
-            - !Sub "${NerReplacementRepository}"
+            - !Sub "${ReplacementRepository}/bigid/bigid-ner:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -389,34 +384,31 @@ Resources:
           - ShouldAttachManagedPolicy
           - !Ref ManagedPolicyArn
           - !Ref "AWS::NoValue"
-      Policies:
-        - PolicyName: BigIDScannerTaskExecutionPolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                  - secretsmanager:DescribeSecret
-                Resource: 
-                  Fn::If:
-                    - ShouldCreateRefreshTokenSecret
-                    - !Ref RefreshTokenSecret
-                    - !If
-                        - !Equals [!Ref BigIDRefreshSecretArn, ""]
-                        - !Ref BigIDRefreshSecretArn
-                        - !Ref "AWS::NoValue"
-              - Effect: Allow
-                Action:
-                  - ecr:GetAuthorizationToken
-                  - ecr:BatchCheckLayerAvailability
-                  - ecr:BatchGetImage
-                  - ecr:GetDownloadUrlForLayer
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - logs:CreateLogGroup
-                  - logs:DescribeLogStreams
-                Resource: "*"
+
+  RolePolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BigIDScannerTaskExecutionPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:CreateLogGroup",
+                "logs:DescribeLogStreams",
+                "iam:DeleteRolePolicy",
+                "secretsmanager:GetSecretValue",
+              ]
+            Resource: "*"
+      Roles:
+        - !Ref ECSIAMRole
 
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
@@ -466,14 +458,11 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: 
+                Resource:
                   Fn::If:
                     - ShouldCreateRefreshTokenSecret
                     - !Ref RefreshTokenSecret
-                    - !If
-                        - !Equals [!Ref BigIDRefreshSecretArn, ""]
-                        - !Ref BigIDRefreshSecretArn
-                        - !Ref "AWS::NoValue"
+                    - !Ref BigIDRefreshSecretArn
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
@@ -505,8 +494,8 @@ Resources:
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
-      ScheduleExpression: !Ref ScheduleExpression
-      State: ENABLED
+      ScheduleExpression: !Ref ScheduleExpression # Schedule to trigger every 10 minutes
+      State: ENABLED # Enable the rule
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
           Id: ECSScalerLambdaTarget
@@ -514,10 +503,10 @@ Resources:
             InputTemplate: !Join
               - ""
               - - '{"refresh_token_secret_id":"'
-                - !If
-                    - ShouldCreateRefreshTokenSecret
-                    - !Ref RefreshTokenSecret
-                    - !Ref BigIDRefreshSecretArn
+                - !If 
+                  - ShouldCreateRefreshTokenSecret
+                  - "bigid-scanner-token"
+                  - !Ref BigIDRefreshSecretArn
                 - '",'
                 - '"host_name":"'
                 - !Ref BigIDHostname
@@ -551,6 +540,4 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
-
-
                 
