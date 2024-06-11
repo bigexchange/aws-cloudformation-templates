@@ -27,8 +27,14 @@ Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
     Type: AWS::EC2::VPC::Id
-  SubnetName:
-    Description: "The subnet name to use for the ECS Task Definition. Please provide the appropriate subnet ID."
+  Subnet1:
+    Description: "The first subnet ID to use for the ECS Task Definition."
+    Type: AWS::EC2::Subnet::Id
+  Subnet2:
+    Description: "The second subnet ID to use for the ECS Task Definition."
+    Type: AWS::EC2::Subnet::Id
+  Subnet3:
+    Description: "The third subnet ID to use for the ECS Task Definition."
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
@@ -114,6 +120,13 @@ Parameters:
     Description: The replacement repository URL (Leave empty to use default repository)
     Type: String
     Default: ""
+  AssignPublicIp:
+    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress."
+    Type: String
+    Default: "ENABLED"
+    AllowedValues:
+      - "ENABLED"
+      - "DISABLED"
 
 Resources:
   RefreshTokenSecret:
@@ -128,8 +141,6 @@ Resources:
           Value: "scanner-refresh-token"
   ECSCluster:
     Type: "AWS::ECS::Cluster"
-    Properties:
-      ClusterName: BigIDScannerCluster
 
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -322,41 +333,42 @@ Resources:
     Type: "AWS::ECS::Service"
     Condition: IsScannerOnly
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerECSTaskDefinition
 
   ECSNERService:
     Condition: IsNer
     Type: "AWS::ECS::Service"
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
 
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
-      RoleName: BigIDScannerTaskExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -385,8 +397,8 @@ Resources:
               [
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
                 "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
                 "logs:CreateLogGroup",
@@ -428,7 +440,6 @@ Resources:
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: ECSScalerLambdaExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -483,7 +494,6 @@ Resources:
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
-      Name: ECSScalerRule
       ScheduleExpression: !Ref ScheduleExpression # Schedule to trigger every 10 minutes
       State: ENABLED # Enable the rule
       Targets:
