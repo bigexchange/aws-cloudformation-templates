@@ -1,14 +1,13 @@
 name: AWS Cloudformation Templates Actions
 
 on:
-  push:
+  pull_request:
     branches:
       - '*'
-  workflow_dispatch:
 
 jobs:
   s3-upload:
-    name: Scanner.yaml Copy
+    name: Upload scanner.yaml
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -33,6 +32,7 @@ jobs:
           else
             aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
           fi
+
 
   lambda-upload:
     needs: s3-upload
