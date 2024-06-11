@@ -110,8 +110,6 @@ Parameters:
 Resources:
   ECSCluster:
     Type: "AWS::ECS::Cluster"
-    Properties:
-      ClusterName: BigIDScannerCluster
 
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -286,7 +284,6 @@ Resources:
     Type: "AWS::ECS::Service"
     Condition: IsScannerOnly
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
@@ -305,7 +302,6 @@ Resources:
     Condition: IsNer
     Type: "AWS::ECS::Service"
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
@@ -324,7 +320,6 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
-      RoleName: BigIDScannerTaskExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -354,7 +349,6 @@ Resources:
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
                 "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
                 "logs:CreateLogGroup",
@@ -396,7 +390,6 @@ Resources:
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: ECSScalerLambdaExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -447,7 +440,6 @@ Resources:
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
-      Name: ECSScalerRule
       ScheduleExpression: !Ref ScheduleExpression # Schedule to trigger every 10 minutes
       State: ENABLED # Enable the rule
       Targets:
