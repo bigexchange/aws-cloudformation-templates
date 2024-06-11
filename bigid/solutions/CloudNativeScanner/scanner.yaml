@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 AWSTemplateFormatVersion: 2010-09-09
 
 Conditions:
@@ -9,15 +7,6 @@ Conditions:
   IsScannerOnly: !Equals
     - !Ref NerEnabled
     - false
-  ShouldCreateRefreshTokenSecret:
-    Fn::And:
-      - Fn::Not:
-          - Fn::Equals:
-              - Ref: BigIDRefreshToken
-              - ""
-      - Fn::Equals:
-          - Ref: BigIDRefreshSecretArn
-          - ""
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
@@ -85,11 +74,6 @@ Parameters:
     NoEcho: true
     Description: "The refresh token for BigID."
     Type: String
-    Default: ""
-  BigIDRefreshSecretArn:
-    Type: String
-    Description: The ARN of the existing secret to use for BigID Scanner Token (Optional)
-    Default: ""
   BigIDHostname:
     Description: "The hostname for BigID (e.g., test.bigid.cloud). Do not include the protocol (http:// or https://)."
     Type: String
@@ -139,12 +123,9 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Condition: ShouldCreateRefreshTokenSecret
     Properties:
-      Description: "BigID Scanner Token"
-      Name: "bigid-scanner-token"
+      Description: !Sub "${AWS::StackName} Scanner Token"
       SecretString: !Ref BigIDRefreshToken
-      Tags:
-        - Key: Name
-          Value: "scanner-refresh-token"
+
   ECSCluster:
     Type: "AWS::ECS::Cluster"
 
@@ -186,15 +167,9 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -212,6 +187,8 @@ Resources:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
+
+
 
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -254,15 +231,9 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -307,15 +278,9 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+          Secrets:
+            - Name: BIGID_REFRESH_TOKEN             
+              ValueFrom: !Ref RefreshTokenSecret
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -339,17 +304,18 @@ Resources:
     Type: "AWS::ECS::Service"
     Condition: IsScannerOnly
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerECSTaskDefinition
 
   ECSNERService:
@@ -462,11 +428,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource:
-                  Fn::If:
-                    - ShouldCreateRefreshTokenSecret
-                    - !Ref RefreshTokenSecret
-                    - !Ref BigIDRefreshSecretArn
+                Resource: !Ref RefreshTokenSecret
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
@@ -509,7 +471,7 @@ Resources:
               - - '{"refresh_token_secret_id":"'
                 - !If 
                   - ShouldCreateRefreshTokenSecret
-                  - "bigid-scanner-token"
+                  - !Ref RefreshTokenSecret
                   - !Ref BigIDRefreshSecretArn
                 - '",'
                 - '"host_name":"'
@@ -533,7 +495,11 @@ Resources:
                                 - !Sub "${AWS::AccountId}-${AWS::Region}"
                                 - !Ref "AWS::NoValue"
                 - '",'
-                - '"service_name":"bigid-scanner-service'
+                - '"service_name":"'
+                - !If
+                    - IsNer
+                    - !Ref ECSNERService
+                    - !Ref ECSScannerService
                 - '",'
                 - '"region_name":"'
                 - !Ref "AWS::Region"
@@ -544,4 +510,5 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
->>>>>>> a4e33a49 (Bco 0000 support existing secret (#40))
+
+                
