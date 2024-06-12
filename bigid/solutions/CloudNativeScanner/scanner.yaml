@@ -546,8 +546,3 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
-<<<<<<< HEAD
-=======
-
-                
->>>>>>> cd3fcf57 (Multi-scanner account changes (#49))
