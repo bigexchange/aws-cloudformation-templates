@@ -16,7 +16,6 @@ jobs:
   s3-upload:
     name: Upload scanner.yaml
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'bigid/solutions/CloudNativeScanner/scanner.yaml')
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
       id-token: write
@@ -36,7 +35,6 @@ jobs:
   lambda-upload:
     name: Build Lambda and Push To S3
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.modified, 'bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/ecs_scaler_lambda.py')
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
       id-token: write
