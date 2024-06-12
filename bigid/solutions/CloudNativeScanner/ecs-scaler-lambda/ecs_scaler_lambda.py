@@ -125,6 +125,10 @@ def main(
     if system_token:
         jobs = get_scans_jobs(hostname, system_token,scanner_group)
         scanners = get_scanner_list(system_token,hostname, scanner_group)
+        print(f"jobs: {jobs}")
+        print(f"scanners:{len(scanners)}")
+        print(f"min:{minimum_desired_count}")
+        print(f"desired_count: {desired_count}")
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
         # If there are more active scanners than needed, scale down the scanner count.
