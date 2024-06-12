@@ -1,7 +1,7 @@
 name: AWS Cloudformation Templates Actions
 
 on:
-  push:
+  pull_request:
     branches:
       - '*'
 
@@ -22,21 +22,17 @@ jobs:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
 
-      - name: Determine branch name
-        id: get_branch
-        run: |
-          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
-          echo "Branch name: $BRANCH_NAME"
-          echo "::set-output name=branch::$BRANCH_NAME"
-
       - name: Upload scanner.yaml to S3
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
-          BRANCH_NAME=${{ steps.get_branch.outputs.branch }}
-          if [ "${BRANCH_NAME}" == "main" ]; then
+          # Upload to S3
+          if [ "${GITHUB_REF_NAME}" == "main" ]; then
             aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner.yaml --acl public-read
           else
-            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${BRANCH_NAME}.yaml --acl public-read
+            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
           fi
+
 
   lambda-upload:
     needs: s3-upload
@@ -48,18 +44,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11.0"
-
       - name: Install dependencies
         run: |
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
           python -m pip install --upgrade pip
           pip install -r requirements.txt --target ./package
-
       - name: Prepare package
         run: |
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
@@ -73,17 +66,15 @@ jobs:
           cp ecs_scaler_lambda.py package/
           cd package
           zip -r ../ecs-scaler-lambda.zip .
-
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
       - name: Upload Lambda function to S3
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
-          # Extract branch name
-          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
-
           # Extract version
           LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
           echo "Lambda version: $LAMBDA_VERSION"
@@ -92,8 +83,8 @@ jobs:
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
 
           # Upload to S3
-          if [ "${BRANCH_NAME}" == "main" ]; then
+          if [ "${GITHUB_REF_NAME}" == "main" ]; then
             aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-${LAMBDA_VERSION}.zip --acl public-read
           else
-            aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-${LAMBDA_VERSION}-${BRANCH_NAME}.zip --acl public-read
+            aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION-${{ github.ref_name }}.zip --acl public-read
           fi
