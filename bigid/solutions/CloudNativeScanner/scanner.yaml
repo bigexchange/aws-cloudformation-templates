@@ -27,8 +27,14 @@ Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
     Type: AWS::EC2::VPC::Id
-  SubnetName:
-    Description: "The subnet name to use for the ECS Task Definition. Please provide the appropriate subnet ID."
+  Subnet1:
+    Description: "The first subnet ID to use for the ECS Task Definition."
+    Type: AWS::EC2::Subnet::Id
+  Subnet2:
+    Description: "The second subnet ID to use for the ECS Task Definition."
+    Type: AWS::EC2::Subnet::Id
+  Subnet3:
+    Description: "The third subnet ID to use for the ECS Task Definition."
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
@@ -111,25 +117,31 @@ Parameters:
     Type: String
     Default: ""
   ReplacementRepository:
-    Description: The replacement repository URL (Leave empty to use default repository)
+    Description: The full replacement repository URL for the scanner (including tag)
     Type: String
     Default: ""
+  NerReplacementRepository:
+    Description: The full replacement repository URL for the NER scanner (including tag)
+    Type: String
+    Default: ""
+  AssignPublicIp:
+    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress."
+    Type: String
+    Default: "ENABLED"
+    AllowedValues:
+      - "ENABLED"
+      - "DISABLED"
 
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
     Condition: ShouldCreateRefreshTokenSecret
     Properties:
-      Description: "BigID Scanner Token"
-      Name: "bigid-scanner-token"
+      Description: !Sub "${AWS::StackName} Scanner Token"
       SecretString: !Ref BigIDRefreshToken
-      Tags:
-        - Key: Name
-          Value: "scanner-refresh-token"
+
   ECSCluster:
     Type: "AWS::ECS::Cluster"
-    Properties:
-      ClusterName: BigIDScannerCluster
 
   ScannerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -141,7 +153,7 @@ Resources:
           Image: !If
             - UseDefaultRepository
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
+            - !Ref ReplacementRepository
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -196,6 +208,8 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
 
+
+
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
@@ -207,7 +221,7 @@ Resources:
           Image: !If
             - UseDefaultRepository
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Sub "${ReplacementRepository}/bigid/bigid-scanner:${ImageTagVersion}"
+            - !Ref ReplacementRepository
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -262,7 +276,7 @@ Resources:
           Image: !If
             - UseDefaultRepository
             - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
-            - !Sub "${ReplacementRepository}/bigid/bigid-ner:${ImageTagVersion}"
+            - !Ref NerReplacementRepository
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -322,41 +336,42 @@ Resources:
     Type: "AWS::ECS::Service"
     Condition: IsScannerOnly
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerECSTaskDefinition
 
   ECSNERService:
     Condition: IsNer
     Type: "AWS::ECS::Service"
     Properties:
-      ServiceName: bigid-scanner-service
       Cluster: !Ref ECSCluster
       DesiredCount: !Ref MinimumScannerCount
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: !Ref AssignPublicIp
           SecurityGroups:
             - !Sub "${SecurityGroupName}"
           Subnets:
-            - !Sub "${SubnetName}"
+            - !Ref Subnet1
+            - !Ref Subnet2
+            - !Ref Subnet3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
 
   ECSIAMRole:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
-      RoleName: BigIDScannerTaskExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -385,8 +400,8 @@ Resources:
               [
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
                 "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
                 "logs:CreateLogGroup",
@@ -401,7 +416,6 @@ Resources:
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
     Properties:
-      FunctionName: ECSScalerLambda
       Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 30
@@ -428,7 +442,6 @@ Resources:
   LambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: ECSScalerLambdaExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -483,7 +496,6 @@ Resources:
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
-      Name: ECSScalerRule
       ScheduleExpression: !Ref ScheduleExpression # Schedule to trigger every 10 minutes
       State: ENABLED # Enable the rule
       Targets:
@@ -495,7 +507,7 @@ Resources:
               - - '{"refresh_token_secret_id":"'
                 - !If 
                   - ShouldCreateRefreshTokenSecret
-                  - "bigid-scanner-token"
+                  - !Ref RefreshTokenSecret
                   - !Ref BigIDRefreshSecretArn
                 - '",'
                 - '"host_name":"'
@@ -519,7 +531,11 @@ Resources:
                                 - !Sub "${AWS::AccountId}-${AWS::Region}"
                                 - !Ref "AWS::NoValue"
                 - '",'
-                - '"service_name":"bigid-scanner-service'
+                - '"service_name":"'
+                - !If
+                    - IsNer
+                    - !Ref ECSNERService
+                    - !Ref ECSScannerService
                 - '",'
                 - '"region_name":"'
                 - !Ref "AWS::Region"
@@ -530,4 +546,5 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
+
                 
