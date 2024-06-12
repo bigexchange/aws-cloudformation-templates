@@ -167,9 +167,15 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets:
-            - Name: BIGID_REFRESH_TOKEN             
-              ValueFrom: !Ref RefreshTokenSecret
+          Secrets: 
+            !If
+              - ShouldCreateRefreshTokenSecret
+              - 
+                - Name: REFRESH_TOKEN
+                  ValueFrom: !Ref RefreshTokenSecret
+              - 
+                - Name: REFRESH_TOKEN
+                  ValueFrom: !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -231,9 +237,15 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets:
-            - Name: BIGID_REFRESH_TOKEN             
-              ValueFrom: !Ref RefreshTokenSecret
+          Secrets: 
+            !If
+              - ShouldCreateRefreshTokenSecret
+              - 
+                - Name: REFRESH_TOKEN
+                  ValueFrom: !Ref RefreshTokenSecret
+              - 
+                - Name: REFRESH_TOKEN
+                  ValueFrom: !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -278,9 +290,15 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets:
-            - Name: BIGID_REFRESH_TOKEN             
-              ValueFrom: !Ref RefreshTokenSecret
+          Secrets: 
+            !If
+              - ShouldCreateRefreshTokenSecret
+              - 
+                - Name: REFRESH_TOKEN
+                  ValueFrom: !Ref RefreshTokenSecret
+              - 
+                - Name: REFRESH_TOKEN
+                  ValueFrom: !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
             Options:
