@@ -1,7 +1,7 @@
 name: AWS Cloudformation Templates Actions
 
 on:
-  pull_request:
+  push:
     branches:
       - '*'
 
@@ -32,7 +32,6 @@ jobs:
           else
             aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
           fi
-
 
   lambda-upload:
     needs: s3-upload
