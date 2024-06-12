@@ -185,10 +185,10 @@ Resources:
             !If
               - ShouldCreateRefreshTokenSecret
               - 
-                - Name: BIGID_REFRESH_TOKEN
+                - Name: REFRESH_TOKEN
                   ValueFrom: !Ref RefreshTokenSecret
               - 
-                - Name: BIGID_REFRESH_TOKEN
+                - Name: REFRESH_TOKEN
                   ValueFrom: !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
@@ -255,10 +255,10 @@ Resources:
             !If
               - ShouldCreateRefreshTokenSecret
               - 
-                - Name: BIGID_REFRESH_TOKEN
+                - Name: REFRESH_TOKEN
                   ValueFrom: !Ref RefreshTokenSecret
               - 
-                - Name: BIGID_REFRESH_TOKEN
+                - Name: REFRESH_TOKEN
                   ValueFrom: !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
@@ -308,10 +308,10 @@ Resources:
             !If
               - ShouldCreateRefreshTokenSecret
               - 
-                - Name: BIGID_REFRESH_TOKEN
+                - Name: REFRESH_TOKEN
                   ValueFrom: !Ref RefreshTokenSecret
               - 
-                - Name: BIGID_REFRESH_TOKEN
+                - Name: REFRESH_TOKEN
                   ValueFrom: !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
@@ -546,5 +546,3 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - '}'
-
-                
