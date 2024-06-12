@@ -125,23 +125,33 @@ def main(
     if system_token:
         jobs = get_scans_jobs(hostname, system_token,scanner_group)
         scanners = get_scanner_list(system_token,hostname, scanner_group)
+        scale = False
+        print(f"jobs: {jobs}")
+        print(f"scanners:{len(scanners)}")
+        print(f"min:{minimum_desired_count}")
+        print(f"desired_count: {desired_count}")
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
         # If there are more active scanners than needed, scale down the scanner count.
         if not jobs and len(scanners) > minimum_desired_count:
             desired_count = minimum_desired_count
+            scale = True
             print("Scaling Down")
         elif jobs and len(scanners) < int(desired_count):
             desired_count = desired_count
+            scale = True
             print("Scaling up Scanners")
-        # Get scans and scale ECS task definition based on the result
-        result = scale_ecs_task_definition(
-            cluster_name,
-            service_name,
-            desired_count,
-            region_name,
-        )
-        return result
+        if scale:
+            #  Get scans and scale ECS task definition based on the result
+            print("Calling ECS Task Definition")
+            result = scale_ecs_task_definition(
+                cluster_name,
+                service_name,
+                desired_count,
+                region_name,
+            )
+            return result
+        return None
     else:
         return None
 
