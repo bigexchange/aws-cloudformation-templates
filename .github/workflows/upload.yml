@@ -97,7 +97,7 @@ jobs:
           LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
           echo "Lambda version: $LAMBDA_VERSION"
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
-          if [ "${env.branch}" == "main" ]; then
+          if [ "${{ github.ref_name }}" == "main" ]; then
             aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-${LAMBDA_VERSION}.zip --acl public-read
           else
             aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION-${{ env.branch }}.zip --acl public-read
