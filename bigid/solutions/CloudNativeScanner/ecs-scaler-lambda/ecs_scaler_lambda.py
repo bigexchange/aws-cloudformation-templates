@@ -28,11 +28,16 @@ def get_secret(refresh_token_secret_id, region_name):
     return secret
 
 
-def get_proxies(http_proxy, https_proxy):
-    return {
+def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
+    http_proxy = f"{http_proxy_host}:{http_proxy_port}"
+    https_proxy = f"{https_proxy_host}:{https_proxy_port}"
+    proxies = {
         'http': http_proxy,
         'https': https_proxy,
     }
+    if http_proxy_host or https_proxy_host:
+        print(f"Using proxies: HTTP: {http_proxy}, HTTPS: {https_proxy}")
+    return proxies
 
 # Function to get the system token
 def get_token(refresh_token, hostname, proxies):
@@ -75,6 +80,8 @@ def scale_ecs_task_definition(cluster_name, service_name, desired_count, region_
 
 # Function to Get Scan Jobs
 def get_scans_jobs(hostname, system_token, scanner_group, proxies):
+    if proxies.get('http') or proxies.get('https'):
+        print(f"Using proxies: HTTP: {proxies.get('http')}, HTTPS: {proxies.get('https')}")
     url = f"https://{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
     response = requests.get(url, headers=headers, proxies=proxies)
@@ -93,6 +100,8 @@ def get_scanner_list(system_token, hostname, scanner_group, proxies):
     return scanners
 
 def get_scanners(system_token, hostname, proxies, scanner_id=None):
+    if proxies.get('http') or proxies.get('https'):
+        print(f"Using proxies: HTTP: {proxies.get('http')}, HTTPS: {proxies.get('https')}")
     url = f"https://{hostname}/api/v1/scanner-status"
     if scanner_id:
         url = f"{url}/{scanner_id}"
@@ -103,7 +112,7 @@ def get_scanners(system_token, hostname, proxies, scanner_id=None):
     data = response.json()
     return data
 
-# Gets all the scanner ID's for a given scanner group and returns 0 if there are no scanners are working
+# Gets all the scanner ID's for a given scanner group and returns 0 if there are no scanners working
 def iterate_scanners(system_token, hostname, scanner_group, proxies):
     scanners = get_scanner_list(system_token, hostname, scanner_group, proxies)
     running = []
@@ -117,8 +126,10 @@ def iterate_scanners(system_token, hostname, scanner_group, proxies):
 def main(
     refresh_token_secret_id,
     hostname,
-    http_proxy,
-    https_proxy,
+    http_proxy_host,
+    http_proxy_port,
+    https_proxy_host,
+    https_proxy_port,
     cluster_name,
     service_name,
     desired_count,
@@ -126,7 +137,7 @@ def main(
     scanner_group,
     minimum_desired_count,
 ):
-    proxies = get_proxies(http_proxy, https_proxy)
+    proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     refresh_token = get_secret(refresh_token_secret_id, region_name)
     system_token = get_token(refresh_token, hostname, proxies)
     if system_token:
@@ -172,13 +183,17 @@ def lambda_handler(event, context):
     desired_count = event.get("desired_count")
     scanner_group = event.get("scanner_group")
     minimum_desired_count = event.get("minimum_desired_count")
-    http_proxy = event.get("http_proxy")
-    https_proxy = event.get("https_proxy")
+    http_proxy_host = event.get("http_proxy_host")
+    http_proxy_port = event.get("http_proxy_port")
+    https_proxy_host = event.get("https_proxy_host")
+    https_proxy_port = event.get("https_proxy_port")
     result = main(
         refresh_token_secret_id,
         hostname,
-        http_proxy,
-        https_proxy,
+        http_proxy_host,
+        http_proxy_port,
+        https_proxy_host,
+        https_proxy_port,
         cluster_name,
         service_name,
         desired_count,
