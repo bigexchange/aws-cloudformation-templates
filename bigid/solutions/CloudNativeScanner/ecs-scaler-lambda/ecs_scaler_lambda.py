@@ -1,8 +1,6 @@
 import boto3
 import requests
 
-
-
 def get_secret(refresh_token_secret_id, region_name):
     secret_name = refresh_token_secret_id
     region_name = region_name  # Replace with your AWS region
@@ -30,8 +28,14 @@ def get_secret(refresh_token_secret_id, region_name):
     return secret
 
 
+def get_proxies(http_proxy, https_proxy):
+    return {
+        'http': http_proxy,
+        'https': https_proxy,
+    }
+
 # Function to get the system token
-def get_token(refresh_token, hostname):
+def get_token(refresh_token, hostname, proxies):
     # Check if the hostname is set
     if hostname is None:
         print("Error: 'hostname' variable is not set")
@@ -41,7 +45,7 @@ def get_token(refresh_token, hostname):
     url = f"https://{hostname}/api/v1/refresh-access-token"
     headers = {"Authorization": refresh_token, "Content-Type": "application/json"}
     # Send a request to obtain the system token
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, proxies=proxies)
     if response.status_code == 200:
         data = response.json()
         system_token = data.get("systemToken")
@@ -70,42 +74,42 @@ def scale_ecs_task_definition(cluster_name, service_name, desired_count, region_
     return response  # Return the response from the update_service call
 
 # Function to Get Scan Jobs
-def get_scans_jobs(hostname, system_token,scanner_group):
+def get_scans_jobs(hostname, system_token, scanner_group, proxies):
     url = f"https://{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, proxies=proxies)
     if response.status_code == 200:
         data = response.json()
         scanner_group_jobs = [r for r in data.get("results") if r.get("group") == scanner_group]
         return bool(scanner_group_jobs)
     raise Exception(f"Scanner Jobs Return:{response.status_code}")
 
-def get_scanner_list(system_token, hostname, scanner_group):
-    scanners = get_scanners(system_token,hostname)
+def get_scanner_list(system_token, hostname, scanner_group, proxies):
+    scanners = get_scanners(system_token, hostname, proxies)
     scanners = scanners.get("data")
     scanners = [
         scanner for scanner in scanners if scanner.get("scanner_group") == scanner_group
     ]
     return scanners
 
-def get_scanners(system_token,hostname,scanner_id=None):
+def get_scanners(system_token, hostname, proxies, scanner_id=None):
     url = f"https://{hostname}/api/v1/scanner-status"
     if scanner_id:
         url = f"{url}/{scanner_id}"
     headers = {"Authorization": system_token}
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, proxies=proxies)
     if response.status_code != 200:
-        raise RuntimeError(f"Recieved invalid status_code {response.status_code}")
+        raise RuntimeError(f"Received invalid status_code {response.status_code}")
     data = response.json()
     return data
 
-# Gets all the scanner ID's for a giving scanner group and returns 0 if there are no scanners are working
-def iterate_scanners(system_token, hostname, scanner_group):
-    scanners = get_scanner_list(system_token,hostname, scanner_group)
+# Gets all the scanner ID's for a given scanner group and returns 0 if there are no scanners are working
+def iterate_scanners(system_token, hostname, scanner_group, proxies):
+    scanners = get_scanner_list(system_token, hostname, scanner_group, proxies)
     running = []
     for scanner in scanners:
         scanner_id = scanner.get("scanner_id")
-        status = get_scanners(system_token, hostname, scanner_id)
+        status = get_scanners(system_token, hostname, proxies, scanner_id)
         running.append(status.get("data")[0].get("running", 0))
     return any(running)
 
@@ -113,6 +117,8 @@ def iterate_scanners(system_token, hostname, scanner_group):
 def main(
     refresh_token_secret_id,
     hostname,
+    http_proxy,
+    https_proxy,
     cluster_name,
     service_name,
     desired_count,
@@ -120,15 +126,16 @@ def main(
     scanner_group,
     minimum_desired_count,
 ):
+    proxies = get_proxies(http_proxy, https_proxy)
     refresh_token = get_secret(refresh_token_secret_id, region_name)
-    system_token = get_token(refresh_token, hostname)
+    system_token = get_token(refresh_token, hostname, proxies)
     if system_token:
-        jobs = get_scans_jobs(hostname, system_token,scanner_group)
-        scanners = get_scanner_list(system_token,hostname, scanner_group)
+        jobs = get_scans_jobs(hostname, system_token, scanner_group, proxies)
+        scanners = get_scanner_list(system_token, hostname, scanner_group, proxies)
         scale = False
         print(f"jobs: {jobs}")
-        print(f"scanners:{len(scanners)}")
-        print(f"min:{minimum_desired_count}")
+        print(f"scanners: {len(scanners)}")
+        print(f"min: {minimum_desired_count}")
         print(f"desired_count: {desired_count}")
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
@@ -165,15 +172,19 @@ def lambda_handler(event, context):
     desired_count = event.get("desired_count")
     scanner_group = event.get("scanner_group")
     minimum_desired_count = event.get("minimum_desired_count")
+    http_proxy = event.get("http_proxy")
+    https_proxy = event.get("https_proxy")
     result = main(
         refresh_token_secret_id,
         hostname,
+        http_proxy,
+        https_proxy,
         cluster_name,
         service_name,
         desired_count,
         region_name,
         scanner_group,
-        minimum_desired_count,
+        minimum_desired_count
     )
     if result == "Scaling down":
         return {
