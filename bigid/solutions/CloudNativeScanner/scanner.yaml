@@ -23,25 +23,13 @@ Conditions:
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
   HasHttpProxy:
-    Fn::And:
-      - Fn::Not:
-          - Fn::Equals:
-              - !Ref HttpProxyHost
-              - ""
-      - Fn::Not:
-          - Fn::Equals:
-              - !Ref HttpProxyPort
-              - ""
+    !And
+      - !Not [!Equals [!Ref HttpProxyHost, ""]]
+      - !Not [!Equals [!Ref HttpProxyPort, ""]]
   HasHttpsProxy:
-    Fn::And:
-      - Fn::Not:
-          - Fn::Equals:
-              - !Ref HttpsProxyHost
-              - ""
-      - Fn::Not:
-          - Fn::Equals:
-              - !Ref HttpsProxyPort
-              - ""
+    !And
+      - !Not [!Equals [!Ref HttpsProxyHost, ""]]
+      - !Not [!Equals [!Ref HttpsProxyPort, ""]]
 Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition."
