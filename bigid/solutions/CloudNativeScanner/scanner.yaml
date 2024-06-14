@@ -298,16 +298,10 @@ Resources:
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
-            - !If
-                - HasHttpProxy
-                - Name: HTTP_PROXY
-                  Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
-                - !Ref "AWS::NoValue"
-            - !If
-                - HasHttpsProxy
-                - Name: HTTPS_PROXY
-                  Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
-                - !Ref "AWS::NoValue"
+            - Name: HTTP_PROXY
+              Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
+            - Name: HTTPS_PROXY
+              Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
