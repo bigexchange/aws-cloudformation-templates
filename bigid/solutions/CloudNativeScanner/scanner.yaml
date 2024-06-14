@@ -22,8 +22,12 @@ Conditions:
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
-  HasHttpProxy: !And [!Not [!Equals [!Ref HttpProxyHost, ""]], !Not [!Equals [!Ref HttpProxyPort, ""]]]
-  HasHttpsProxy: !And [!Not [!Equals [!Ref HttpsProxyHost, ""]], !Not [!Equals [!Ref HttpsProxyPort, ""]]]
+  HasHttpProxy: !And
+    - !Not [!Equals [!Ref HttpProxyHost, ""]]
+    - !Not [!Equals [!Ref HttpProxyPort, ""]]
+  HasHttpsProxy: !And
+    - !Not [!Equals [!Ref HttpsProxyHost, ""]]
+    - !Not [!Equals [!Ref HttpsProxyPort, ""]]
 
 Parameters:
   VpcID:
