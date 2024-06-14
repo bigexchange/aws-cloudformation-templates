@@ -22,8 +22,8 @@ Conditions:
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
-  HasHttpProxy: !And [!Not [!Equals [!Ref HTTP_PROXY_HOST, ""]], !Not [!Equals [!Ref HTTP_PROXY_PORT, ""]]]
-  HasHttpsProxy: !And [!Not [!Equals [!Ref HTTPS_PROXY_HOST, ""]], !Not [!Equals [!Ref HTTPS_PROXY_PORT, ""]]]
+  HasHttpProxy: !And [!Not [!Equals [!Ref HttpProxyHost, ""]], !Not [!Equals [!Ref HttpProxyPort, ""]]]
+  HasHttpsProxy: !And [!Not [!Equals [!Ref HttpsProxyHost, ""]], !Not [!Equals [!Ref HttpsProxyPort, ""]]]
 
 Parameters:
   VpcID:
@@ -133,16 +133,16 @@ Parameters:
     AllowedValues:
       - "ENABLED"
       - "DISABLED"
-  HTTPS_PROXY_HOST:
+  HttpsProxyHost:
     Type: String
     Default: ""
-  HTTPS_PROXY_PORT:
+  HttpsProxyPort:
     Type: String
     Default: ""
-  HTTP_PROXY_HOST:
+  HttpProxyHost:
     Type: String
     Default: ""
-  HTTP_PROXY_PORT:
+  HttpProxyPort:
     Type: String
     Default: ""
 
@@ -179,7 +179,7 @@ Resources:
               Value: true
             - Name: SCANNER_JAVA_OPTS
               Value: !Sub |
-                -Dhttp.proxyHost=${HTTP_PROXY_HOST} -Dhttp.proxyPort=${HTTP_PROXY_PORT} -Dhttp.nonProxyHosts=localhost -D-Xmx32g -Dhttps.proxyHost=${HTTPS_PROXY_HOST} -Dhttps.proxyPort=${HTTPS_PROXY_PORT}
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -D-Xmx32g -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -248,7 +248,7 @@ Resources:
               Value: true
             - Name: SCANNER_JAVA_OPTS
               Value: !Sub |
-                -Dhttp.proxyHost=${HTTP_PROXY_HOST} -Dhttp.proxyPort=${HTTP_PROXY_PORT} -Dhttp.nonProxyHosts=localhost -D-Xmx32g -Dhttps.proxyHost=${HTTPS_PROXY_HOST} -Dhttps.proxyPort=${HTTPS_PROXY_PORT}
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -D-Xmx32g -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
@@ -303,12 +303,12 @@ Resources:
             - !If
                 - HasHttpProxy
                 - Name: HTTP_PROXY
-                  Value: !Sub "${HTTP_PROXY_HOST}:${HTTP_PROXY_PORT}"
+                  Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
                 - !Ref "AWS::NoValue"
             - !If
                 - HasHttpsProxy
                 - Name: HTTPS_PROXY
-                  Value: !Sub "${HTTPS_PROXY_HOST}:${HTTPS_PROXY_PORT}"
+                  Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
                 - !Ref "AWS::NoValue"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
@@ -574,15 +574,15 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - ','
-                - '"http_proxy_host":"'
-                - !Ref HTTP_PROXY_HOST
+                - '"HttpProxyHost":"'
+                - !Ref HttpProxyHost
                 - '",'
-                - '"http_proxy_port":"'
-                - !Ref HTTP_PROXY_PORT
+                - '"HttpProxyPort":"'
+                - !Ref HttpProxyPort
                 - '",'
-                - '"https_proxy_host":"'
-                - !Ref HTTPS_PROXY_HOST
+                - '"HttpsProxyHost":"'
+                - !Ref HttpsProxyHost
                 - '",'
-                - '"https_proxy_port":"'
-                - !Ref HTTPS_PROXY_PORT
+                - '"HttpsProxyPort":"'
+                - !Ref HttpsProxyPort
                 - '"}'
