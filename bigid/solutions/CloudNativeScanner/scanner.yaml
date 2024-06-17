@@ -89,7 +89,7 @@ Parameters:
     Description: The ARN of the existing secret to use for BigID Scanner Token (Optional)
     Default: ""
   BigIDHostname:
-    Description: "The hostname for BigID (e.g., test.bigid.cloud). Do not include the protocol (http:// or https://)."
+    Description: "The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://)."
     Type: String
     AllowedPattern: ".+"
   MaximumScannerCount:
@@ -131,6 +131,18 @@ Parameters:
     AllowedValues:
       - "ENABLED"
       - "DISABLED"
+  HttpsProxyHost:
+    Type: String
+    Default: ""
+  HttpsProxyPort:
+    Type: String
+    Default: ""
+  HttpProxyHost:
+    Type: String
+    Default: ""
+  HttpProxyPort:
+    Type: String
+    Default: ""
 
 Resources:
   RefreshTokenSecret:
@@ -163,6 +175,9 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: SCANNER_JAVA_OPTS
+              Value: !Sub |
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx32g -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -208,8 +223,6 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
 
-
-
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
@@ -231,6 +244,9 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: SCANNER_JAVA_OPTS
+              Value: !Sub |
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx32g -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
@@ -282,6 +298,10 @@ Resources:
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: HTTP_PROXY
+              Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
+            - Name: HTTPS_PROXY
+              Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
@@ -424,7 +444,13 @@ Resources:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
         S3Key: ecs-scaler-lambda-v1.0.2.zip
       Runtime: python3.11
-
+      VpcConfig:
+        SubnetIds:
+          - !Ref Subnet1
+          - !Ref Subnet2
+          - !Ref Subnet3
+        SecurityGroupIds:
+          - !Sub "${SecurityGroupName}"
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
@@ -492,6 +518,12 @@ Resources:
                   - ecr:DescribeRepositories
                   - ecr:GetAuthorizationToken
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: "*"
 
   EventBridgeRule:
     Type: "AWS::Events::Rule"
@@ -545,4 +577,16 @@ Resources:
                 - ','
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
-                - '}'
+                - ','
+                - '"http_proxy_host":"'
+                - !Ref HttpProxyHost
+                - '",'
+                - '"http_proxy_port":"'
+                - !Ref HttpProxyPort
+                - '",'
+                - '"https_proxy_host":"'
+                - !Ref HttpsProxyHost
+                - '",'
+                - '"https_proxy_port":"'
+                - !Ref HttpsProxyPort
+                - '"}'
