@@ -61,7 +61,7 @@ def get_token(refresh_token, hostname, proxies):
         if 300 <= response.status_code < 400:
             redirect_url = response.headers.get('Location')
             print(f"Redirected to: {redirect_url}")
-            response = requests.get(redirect_url, headers=headers, proxies=proxies)
+            response = requests.get(redirect_url, headers=headers, proxies=proxies,)
             response.raise_for_status()
         else:
             return None
@@ -110,7 +110,7 @@ def get_scans_jobs(hostname, system_token, scanner_group, proxies):
         if 300 <= response.status_code < 400:
             redirect_url = response.headers.get('Location')
             print(f"Redirected to: {redirect_url}")
-            response = requests.get(redirect_url, headers=headers, proxies=proxies)
+            response = requests.get(redirect_url, headers=headers, proxies=proxies,)
             response.raise_for_status()
         else:
             return None
@@ -142,7 +142,7 @@ def get_scanners(system_token, hostname, proxies, scanner_id=None):
         url = f"{url}/{scanner_id}"
     headers = {"Authorization": system_token}
     try:
-        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response = requests.get(url, headers=headers, proxies=proxies)
         response.raise_for_status()
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
