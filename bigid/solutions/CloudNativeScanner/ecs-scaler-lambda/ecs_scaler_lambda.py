@@ -14,7 +14,6 @@ def get_secret(refresh_token_secret_id, region_name):
 
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-        print(f"Secret fetched successfully: {get_secret_value_response}")
     except Exception as e:
         print(f"An error occurred while fetching the secret: {e}")
         return None
@@ -22,7 +21,6 @@ def get_secret(refresh_token_secret_id, region_name):
     # Extract the secret string
     if 'SecretString' in get_secret_value_response:
         secret = get_secret_value_response['SecretString']
-        print(f"Secret string found: {secret}")
     else:
         print("Secret string not found")
         return None
@@ -194,9 +192,7 @@ def main(
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     print(f"Proxies used: {proxies}")
     refresh_token = get_secret(refresh_token_secret_id, region_name)
-    print(f"Refresh token: {refresh_token}")
     system_token = get_token(refresh_token, hostname, proxies)
-    print(f"System token: {system_token}")
     if system_token:
         jobs = get_scans_jobs(hostname, system_token, scanner_group, proxies)
         scanners = get_scanner_list(system_token, hostname, scanner_group, proxies)
