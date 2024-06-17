@@ -14,13 +14,15 @@ def get_secret(refresh_token_secret_id, region_name):
 
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        print(f"Secret fetched successfully: {get_secret_value_response}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while fetching the secret: {e}")
         return None
 
     # Extract the secret string
     if 'SecretString' in get_secret_value_response:
         secret = get_secret_value_response['SecretString']
+        print(f"Secret string found: {secret}")
     else:
         print("Secret string not found")
         return None
@@ -37,6 +39,8 @@ def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_
     }
     if http_proxy_host or https_proxy_host:
         print(f"Using proxies: HTTP: {http_proxy}, HTTPS: {https_proxy}")
+    else:
+        print("No proxy hosts provided.")
     return proxies
 
 # Function to get the system token
@@ -186,7 +190,7 @@ def main(
     minimum_desired_count,
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
-    print(f"proxies: {proxies}")
+    print(f"Proxies used: {proxies}")
     refresh_token = get_secret(refresh_token_secret_id, region_name)
     print(f"Refresh token: {refresh_token}")
     system_token = get_token(refresh_token, hostname, proxies)
@@ -199,8 +203,6 @@ def main(
         print(f"scanners: {len(scanners)}")
         print(f"min: {minimum_desired_count}")
         print(f"desired_count: {desired_count}")
-        print(f"proxies: {proxies}")
-        print(f"hostname: {hostname}")
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
         # If there are more active scanners than needed, scale down the scanner count.
