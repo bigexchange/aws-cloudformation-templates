@@ -56,7 +56,7 @@ def get_token(refresh_token, hostname, proxies):
     try:
         print(f"proxies: {proxies}")
         print(f"url: {url}")
-        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response = requests.get(url, headers=headers, proxies=proxies)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
@@ -105,7 +105,7 @@ def get_scans_jobs(hostname, system_token, scanner_group, proxies):
     url = f"https://{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
     try:
-        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response = requests.get(url, headers=headers, proxies=proxies)
         response.raise_for_status()
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
@@ -144,7 +144,7 @@ def get_scanners(system_token, hostname, proxies, scanner_id=None):
         url = f"{url}/{scanner_id}"
     headers = {"Authorization": system_token}
     try:
-        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response = requests.get(url, headers=headers, proxies=proxies)
         response.raise_for_status()
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
