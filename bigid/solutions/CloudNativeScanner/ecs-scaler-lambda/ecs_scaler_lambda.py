@@ -29,8 +29,8 @@ def get_secret(refresh_token_secret_id, region_name):
 
 
 def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
-    http_proxy = f"{http_proxy_host}:{http_proxy_port}"
-    https_proxy = f"{https_proxy_host}:{https_proxy_port}"
+    http_proxy = f"http://{http_proxy_host}:{http_proxy_port}" if http_proxy_host else None
+    https_proxy = f"https://{https_proxy_host}:{https_proxy_port}" if https_proxy_host else None
     proxies = {
         'http': http_proxy,
         'https': https_proxy,
@@ -139,7 +139,9 @@ def main(
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     refresh_token = get_secret(refresh_token_secret_id, region_name)
+    print(f"Refresh token: {refresh_token}")
     system_token = get_token(refresh_token, hostname, proxies)
+    print(f"System token: {system_token}")
     if system_token:
         jobs = get_scans_jobs(hostname, system_token, scanner_group, proxies)
         scanners = get_scanner_list(system_token, hostname, scanner_group, proxies)
