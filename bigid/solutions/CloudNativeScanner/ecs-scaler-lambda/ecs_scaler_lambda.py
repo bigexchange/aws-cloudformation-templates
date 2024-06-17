@@ -186,6 +186,7 @@ def main(
     minimum_desired_count,
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
+    print(f"proxies: {proxies}")
     refresh_token = get_secret(refresh_token_secret_id, region_name)
     print(f"Refresh token: {refresh_token}")
     system_token = get_token(refresh_token, hostname, proxies)
