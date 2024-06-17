@@ -31,8 +31,8 @@ def get_secret(refresh_token_secret_id, region_name):
 
 
 def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
-    http_proxy = f"http://{http_proxy_host}:{http_proxy_port}" if http_proxy_host else None
-    https_proxy = f"https://{https_proxy_host}:{https_proxy_port}" if https_proxy_host else None
+    http_proxy = f"{http_proxy_host}:{http_proxy_port}" if http_proxy_host else None
+    https_proxy = f"{https_proxy_host}:{https_proxy_port}" if https_proxy_host else None
     proxies = {
         'http': http_proxy,
         'https': https_proxy,
@@ -51,7 +51,7 @@ def get_token(refresh_token, hostname, proxies):
         return None
 
     # Construct the URL for token retrieval
-    url = f"https://{hostname}/api/v1/refresh-access-token"
+    url = f"{hostname}/api/v1/refresh-access-token"
     headers = {"Authorization": refresh_token, "Content-Type": "application/json"}
     try:
         print(f"proxies: {proxies}")
@@ -102,7 +102,7 @@ def scale_ecs_task_definition(cluster_name, service_name, desired_count, region_
 def get_scans_jobs(hostname, system_token, scanner_group, proxies):
     if proxies.get('http') or proxies.get('https'):
         print(f"Using proxies: HTTP: {proxies.get('http')}, HTTPS: {proxies.get('https')}")
-    url = f"https://{hostname}/api/v1/scanner_jobs"
+    url = f"{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
     try:
         response = requests.get(url, headers=headers, proxies=proxies)
@@ -139,12 +139,12 @@ def get_scanner_list(system_token, hostname, scanner_group, proxies):
 def get_scanners(system_token, hostname, proxies, scanner_id=None):
     if proxies.get('http') or proxies.get('https'):
         print(f"Using proxies: HTTP: {proxies.get('http')}, HTTPS: {proxies.get('https')}")
-    url = f"https://{hostname}/api/v1/scanner-status"
+    url = f"{hostname}/api/v1/scanner-status"
     if scanner_id:
         url = f"{url}/{scanner_id}"
     headers = {"Authorization": system_token}
     try:
-        response = requests.get(url, headers=headers, proxies=proxies)
+        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
         response.raise_for_status()
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")

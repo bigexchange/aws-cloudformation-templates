@@ -89,7 +89,7 @@ Parameters:
     Description: The ARN of the existing secret to use for BigID Scanner Token (Optional)
     Default: ""
   BigIDHostname:
-    Description: "The hostname for BigID (e.g., test.bigid.cloud). Do not include the protocol (http:// or https://)."
+    Description: "The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://)."
     Type: String
     AllowedPattern: ".+"
   MaximumScannerCount:
