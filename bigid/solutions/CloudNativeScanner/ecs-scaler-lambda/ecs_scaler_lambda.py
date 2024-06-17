@@ -49,8 +49,22 @@ def get_token(refresh_token, hostname, proxies):
     # Construct the URL for token retrieval
     url = f"https://{hostname}/api/v1/refresh-access-token"
     headers = {"Authorization": refresh_token, "Content-Type": "application/json"}
-    # Send a request to obtain the system token
-    response = requests.get(url, headers=headers, proxies=proxies)
+    try:
+        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        if 300 <= response.status_code < 400:
+            redirect_url = response.headers.get('Location')
+            print(f"Redirected to: {redirect_url}")
+            response = requests.get(redirect_url, headers=headers, proxies=proxies)
+            response.raise_for_status()
+        else:
+            return None
+    except Exception as err:
+        print(f"Other error occurred: {err}")
+        return None
+
     if response.status_code == 200:
         data = response.json()
         system_token = data.get("systemToken")
@@ -84,12 +98,29 @@ def get_scans_jobs(hostname, system_token, scanner_group, proxies):
         print(f"Using proxies: HTTP: {proxies.get('http')}, HTTPS: {proxies.get('https')}")
     url = f"https://{hostname}/api/v1/scanner_jobs"
     headers = {"Authorization": system_token}
-    response = requests.get(url, headers=headers, proxies=proxies)
+    try:
+        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        if 300 <= response.status_code < 400:
+            redirect_url = response.headers.get('Location')
+            print(f"Redirected to: {redirect_url}")
+            response = requests.get(redirect_url, headers=headers, proxies=proxies)
+            response.raise_for_status()
+        else:
+            return None
+    except Exception as err:
+        print(f"Other error occurred: {err}")
+        return None
+
     if response.status_code == 200:
         data = response.json()
         scanner_group_jobs = [r for r in data.get("results") if r.get("group") == scanner_group]
         return bool(scanner_group_jobs)
-    raise Exception(f"Scanner Jobs Return:{response.status_code}")
+    else:
+        print(f"Error: HTTP request failed with status code {response.status_code}")
+        return None
 
 def get_scanner_list(system_token, hostname, scanner_group, proxies):
     scanners = get_scanners(system_token, hostname, proxies)
@@ -106,11 +137,28 @@ def get_scanners(system_token, hostname, proxies, scanner_id=None):
     if scanner_id:
         url = f"{url}/{scanner_id}"
     headers = {"Authorization": system_token}
-    response = requests.get(url, headers=headers, proxies=proxies)
-    if response.status_code != 200:
-        raise RuntimeError(f"Received invalid status_code {response.status_code}")
-    data = response.json()
-    return data
+    try:
+        response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+        if 300 <= response.status_code < 400:
+            redirect_url = response.headers.get('Location')
+            print(f"Redirected to: {redirect_url}")
+            response = requests.get(redirect_url, headers=headers, proxies=proxies)
+            response.raise_for_status()
+        else:
+            return None
+    except Exception as err:
+        print(f"Other error occurred: {err}")
+        return None
+
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        print(f"Error: HTTP request failed with status code {response.status_code}")
+        return None
 
 # Gets all the scanner ID's for a given scanner group and returns 0 if there are no scanners working
 def iterate_scanners(system_token, hostname, scanner_group, proxies):
@@ -203,20 +251,22 @@ def lambda_handler(event, context):
         scanner_group,
         minimum_desired_count
     )
-    if result == "Scaling down":
-        return {
-            "statusCode": 202,
-            "body": "Scaling scanners down to 0",
-        }
-    elif result is not None:
-        # Return a 200 response with a success message
+    
+    if result is not None:
+        # Check if scaling down
+        if desired_count == minimum_desired_count:
+            return {
+                "statusCode": 202,
+                "body": "Scaling scanners down to minimum count",
+            }
+        # Scaling up or maintaining the desired count
         return {
             "statusCode": 200,
-            "body": "Function executed successfully",
+            "body": "Function executed successfully and scaling performed",
         }
     else:
-        # Handle the case where there was an error
+        # Handle the case where there was an error or no scaling was needed
         return {
             "statusCode": 500,
-            "body": "Internal Server Error",
+            "body": "Internal Server Error or no scaling performed",
         }
