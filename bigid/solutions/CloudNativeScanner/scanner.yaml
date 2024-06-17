@@ -512,6 +512,10 @@ Resources:
                   - ecr:DescribeRepositories
                   - ecr:GetAuthorizationToken
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                Resource: "*"
 
   EventBridgeRule:
     Type: "AWS::Events::Rule"
@@ -566,15 +570,15 @@ Resources:
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
                 - ','
-                - '"HttpProxyHost":"'
+                - '"http_proxy_host":"'
                 - !Ref HttpProxyHost
                 - '",'
-                - '"HttpProxyPort":"'
+                - '"http_proxy_port":"'
                 - !Ref HttpProxyPort
                 - '",'
-                - '"HttpsProxyHost":"'
+                - '"https_proxy_host":"'
                 - !Ref HttpsProxyHost
                 - '",'
-                - '"HttpsProxyPort":"'
+                - '"https_proxy_port":"'
                 - !Ref HttpsProxyPort
                 - '"}'
