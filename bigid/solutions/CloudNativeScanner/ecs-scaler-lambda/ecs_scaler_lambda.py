@@ -231,7 +231,7 @@ def main(
         return None
 
 # Lambda entry point
-def lambda_handler(event):
+def lambda_handler(event, context):
     hostname = event.get("host_name")
     refresh_token_secret_id = event.get("refresh_token_secret_id")
     cluster_name = event.get("cluster_name")
