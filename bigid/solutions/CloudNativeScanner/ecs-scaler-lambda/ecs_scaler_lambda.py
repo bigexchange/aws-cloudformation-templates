@@ -198,6 +198,8 @@ def main(
         print(f"scanners: {len(scanners)}")
         print(f"min: {minimum_desired_count}")
         print(f"desired_count: {desired_count}")
+        print(f"proxies: {proxies}")
+        print(f"hostname: {hostname}")
         # If there are no queued scans and active scanners are present,
         # check if the number of active scanners exceeds the desired minimum count.
         # If there are more active scanners than needed, scale down the scanner count.
