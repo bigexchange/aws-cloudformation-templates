@@ -54,6 +54,8 @@ def get_token(refresh_token, hostname, proxies):
     url = f"https://{hostname}/api/v1/refresh-access-token"
     headers = {"Authorization": refresh_token, "Content-Type": "application/json"}
     try:
+        print(f"proxies: {proxies}")
+        print(f"url: {url}")
         response = requests.get(url, headers=headers, proxies=proxies, allow_redirects=False)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
     except requests.exceptions.HTTPError as http_err:
