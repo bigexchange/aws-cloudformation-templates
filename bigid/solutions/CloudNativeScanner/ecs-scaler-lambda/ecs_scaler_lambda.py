@@ -226,12 +226,12 @@ def main(
                 region_name,
             )
             return result
-        return None
+        return "Nothing to do"
     else:
         return None
 
 # Lambda entry point
-def lambda_handler(event, context):
+def lambda_handler(event):
     hostname = event.get("host_name")
     refresh_token_secret_id = event.get("refresh_token_secret_id")
     cluster_name = event.get("cluster_name")
@@ -259,7 +259,12 @@ def lambda_handler(event, context):
         minimum_desired_count
     )
     
-    if result is not None:
+    if result == "Nothing to do": 
+            return {
+            "statusCode": 200,
+            "body": "Function executed successfully, nothing to do",
+        }
+    elif result is not None:
         # Check if scaling down
         if desired_count == minimum_desired_count:
             return {
