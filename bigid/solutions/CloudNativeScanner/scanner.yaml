@@ -444,7 +444,13 @@ Resources:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
         S3Key: ecs-scaler-lambda-v1.0.2.zip
       Runtime: python3.11
-
+      VpcConfig:
+        SubnetIds:
+          - !Ref Subnet1
+          - !Ref Subnet2
+          - !Ref Subnet3
+        SecurityGroupIds:
+          - !Sub "${SecurityGroupName}"
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
