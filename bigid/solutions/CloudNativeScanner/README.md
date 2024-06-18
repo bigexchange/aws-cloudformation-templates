@@ -79,7 +79,7 @@ Search for `VALIDATE_SCANNER_GROUP`
 ### Step 3.a
 Change the environemnt variable from `true` to `false`
 
-**Once this is completed, you will have to modify your DataSource to be able to be pointed to whichever scanner group is designated within the Cloudformation Template `ScannerGroupName`, this will allow the Scanner to be able to recieve work. If you do not set this the scanner will never recieve work, please consult your Services Engineer, if you need any assistance in modifying this datasources group name.**
+**Once this is completed, you will have to modify your DataSource to be able to be pointed to whichever scanner group is designated within the Cloudformation Template `ScannerGroupName`(Dependent on the Option Chosen, I.E Custom..Etc..Etc.), this will allow the Scanner to be able to recieve work. If you do not set this the scanner will never recieve work, please consult your Services Engineer, if you need any assistance in modifying this datasources group name.**
 
 
 ## ECS Diagram
