@@ -27,7 +27,7 @@ Upload the Cloudformation Template, and input the following variables below.
 https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/bigid/solutions/CloudNativeScanner/scanner.yaml
 ```
 
-## Mandatory Input Variables for Cloudformation
+## Input Variables for Cloudformation
 
 
 | Key                      | Value                                        | Type   | Description                                                                                                          |
@@ -49,15 +49,15 @@ https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/
 | ScannerMemory            | `32768`                                      | Int    | The amount of memory (in MB) to allocate for the scanner.                                                           |
 | ScannerHostName          | `remote-scanner`                             | String | The hostname for the BigID Scanner.                                                                                  |
 | CustomScannerGroupName   | `remote-scanner`                             | String | The Scanner Group Name if the Custom option is selected.                                                            |
-| BigIDRefreshSecretArn    | ``                                           | String | The ARN of the existing secret to use for BigID Scanner Token (Optional).                                            |
+| BigIDRefreshSecretArn    | `arn:aws:secretsmanager:us-east-1:123456789012:secret:scanner-secret-AbCdEf`                                           | String | The ARN of the existing secret to use for BigID Scanner Token (Optional).                                            |
 | BigIDHostname            | `customer.bigid.cloud`                       | String | The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://).          |
 | MaximumScannerCount      | `3`                                          | Int    | The maximum number of BigID scanner instances (replicas) to run.                                                     |
 | MinimumScannerCount      | `1`                                          | Int    | The minimum number of scanner instances to run. Set VALIDATE_SCANNER_GROUP=false for Orch in BigID UI to scale to 0. |
 | ScheduleExpression       | `rate(10 minutes)`                           | String | The schedule expression for the scaling Lambda.                                                                     |
 | AttachManagedPolicy      | `false`                                      | String | Indicate whether to attach a managed policy to the role.                                                            |
-| ManagedPolicyArn         | ``                                           | String | The ARN of the managed policy to attach to the role.                                                                |
-| ReplacementRepository    | ``                                           | String | The full replacement repository URL for the scanner (including tag).                                                 |
-| NerReplacementRepository | ``                                           | String | The full replacement repository URL for the NER scanner (including tag).                                             |
+| ManagedPolicyArn         | ``                                           | String | The ARN of the managed policy to attach to the role. This is required to access either specific resources that wouldn't be allowed or policies to allow cross account resources                                                               |
+| ReplacementRepository    | `1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-xxx`                                           | String | The full replacement repository URL for the scanner (including tag).                                                 |
+| NerReplacementRepository | `1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-xxx`                                           | String | The full replacement repository URL for the NER scanner (including tag).                                             |
 | AssignPublicIp           | `ENABLED`                                    | String | If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress.                    |
 | HttpsProxyHost           | ``                                           | String | The HTTPS Proxy URL for the scanner/scaler to reach the internet. Specify as http://your.proxy.example.com. Do not change the protocol to HTTPS.     |
 | HttpsProxyPort           | ``                                           | String | The port to use with the HTTPS Proxy.                                                                                |
