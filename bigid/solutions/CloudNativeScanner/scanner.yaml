@@ -25,24 +25,24 @@ Conditions:
 
 Parameters:
   VpcID:
-    Description: "The VPC ID to use for the ECS Task Definition."
+    Description: "The VPC ID to use for the ECS Task Definition for the Scanner and Scaler"
     Type: AWS::EC2::VPC::Id
   Subnet1:
-    Description: "The first subnet ID to use for the ECS Task Definition."
+    Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda these will need to be either public subnets, or private subnets with a NAT Gateway"
     Type: AWS::EC2::Subnet::Id
   Subnet2:
-    Description: "The second subnet ID to use for the ECS Task Definition."
+    Description: "The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda these will need to be either public subnets, or private subnets with a NAT Gateway"
     Type: AWS::EC2::Subnet::Id
   Subnet3:
-    Description: "The third subnet ID to use for the ECS Task Definition."
+    Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda these will need to be either public subnets, or private subnets with a NAT Gateway"
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: >-
-      The name of the security group to use for the ECS Task Definition. Please provide the appropriate security group name and ensure the security group is in the same subnet.
+      The name of the security group to use for theID to use for the ECS Task Definition for the Scaler this will require egress over port 443
     Type: AWS::EC2::SecurityGroup::Id
     AllowedPattern: ".+"
   ImageTagVersion:
-    Description: "The tag version of the scanner image."
+    Description: "The tag of the scanner version, please make sure your bigid-scannner image is "
     Type: String
     AllowedPattern: ".+"
   ScannerGroupOption:
@@ -53,7 +53,7 @@ Parameters:
       - AccountID
       - AccountID-Region
       - Custom
-    Description: "Option to set the Scanner Group Name."
+    Description: "Option to set the Scanner Group Name, Custom: will be whatever the custom value set is, Region: Will be named whatever region the scanner is deploying in, AccountID: Will be the account ID whatever account the scanner is located in, AccountID-Region: Will be whater the AccountID-Region the scanner is currently deployed in"
   NerEnabled:
     Description: "Enable Named Entity Recognition (NER)."
     Type: String
@@ -72,7 +72,7 @@ Parameters:
     Type: Number
     Default: 32768
   ScannerHostName:
-    Description: "The hostname for the scanner."
+    Description: "The hostname for the  BigID Scanner."
     Type: String
     Default: remote-scanner
   CustomScannerGroupName:
@@ -81,12 +81,12 @@ Parameters:
     Default: "remote-scanner"
   BigIDRefreshToken:
     NoEcho: true
-    Description: "The refresh token for BigID."
+    Description: "The refresh token for BigID, this will CREATE an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
     Default: ""
   BigIDRefreshSecretArn:
     Type: String
-    Description: The ARN of the existing secret to use for BigID Scanner Token (Optional)
+    Description: The ARN of the existing secret to use for BigID Scanner Token (Optional),  you will need to have created an AWS Secret and specify it, with the full ARN for the secret 
     Default: ""
   BigIDHostname:
     Description: "The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://)."
@@ -101,11 +101,11 @@ Parameters:
     Type: Number
     Default: 1
   ScheduleExpression:
-    Description: "The schedule expression for the scaling Lambda"
+    Description: "The schedule expression for the scaling Lambda, meaning which freuency the lambda will search for jobs."
     Type: String
     Default: "rate(10 minutes)"
   AttachManagedPolicy:
-    Description: "Indicate whether to attach a managed policy to the role."
+    Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement, if you have an external policy to attach directly to the scanner role to allow it scan resources inside / outside the account, this is optional"
     Type: String
     Default: "false"
     AllowedValues:
@@ -117,15 +117,15 @@ Parameters:
     Type: String
     Default: ""
   ReplacementRepository:
-    Description: The full replacement repository URL for the scanner (including tag)
+    Description: "The full replacement repository URL for the scanner (including tag), IE if you are pulling from a separate ECR account, E.G: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-200.16"
     Type: String
     Default: ""
   NerReplacementRepository:
-    Description: The full replacement repository URL for the NER scanner (including tag)
+    Description: "The full replacement repository URL for the NER scanner (including tag),  IE if you are pulling from a separate ECR account, E.G: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-200.16)"
     Type: String
     Default: ""
   AssignPublicIp:
-    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress."
+    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress. This Public IP allocation is specifically for allowing ECS Service to be able to be assigned Public IP address"
     Type: String
     Default: "ENABLED"
     AllowedValues:
@@ -134,15 +134,17 @@ Parameters:
   HttpsProxyHost:
     Type: String
     Default: ""
+    Description: "If utilizing a HTTPS Proxy, please specify so your scanner / scaler can reach out to the internet utilizing a proxy instance, you will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER IT WILL NEED TO BE HTTP AS A PROTOCOL, DO NOT CHANGE TO HTTPS"
   HttpsProxyPort:
     Type: String
-    Default: ""
+    Default: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER"
   HttpProxyHost:
     Type: String
-    Default: ""
+    Default: "If utilizing a HTTP Proxy, please specify so your scanner / scaler can reach out to the internet utilizing a proxy instance, you will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER"
   HttpProxyPort:
     Type: String
     Default: ""
+    Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER"
 
 Resources:
   RefreshTokenSecret:
