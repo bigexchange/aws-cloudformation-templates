@@ -146,11 +146,11 @@ Parameters:
     Type: String
     Default: "rate(10 minutes)"
     AllowedValues:
-      - "rate(1 minutes)"
+      - "rate(1 minute)"
       - "rate(5 minutes)"
       - "rate(10 minutes)"
       - "rate(30 minutes)"
-      - "rate(60 minutes)"
+      - "rate(1 hour)"
   AttachManagedPolicy:
     Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional."
     Type: String
