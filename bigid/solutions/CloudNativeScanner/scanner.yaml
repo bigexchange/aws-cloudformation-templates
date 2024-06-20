@@ -585,7 +585,7 @@ Resources:
       ScheduleExpression:
         Fn::If:
           - IsCustomSchedule
-          - !Sub "rate(${CustomScheduleMinutes} minutes)"
+          - !Sub "rate(${CustomScheduleMinutes} minute)"
           - !Ref ScheduleExpression
       State: ENABLED # Enable the rule
       Targets:
