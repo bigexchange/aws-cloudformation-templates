@@ -168,7 +168,6 @@ Parameters:
   ManagedPolicyArn:
     Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
     Type: String
-    Default: ""
   ReplacementRepository:
     Description: "The full replacement repository URL for the scanner (including tag), e.g., if you are pulling from a separate ECR account. Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-200.16"
     Type: String
@@ -585,7 +584,7 @@ Resources:
       ScheduleExpression:
         Fn::If:
           - IsCustomSchedule
-          - !Sub "rate(${CustomScheduleMinutes} minute)"
+          - !Sub "rate(${CustomScheduleMinutes} minutes)"
           - !Ref ScheduleExpression
       State: ENABLED # Enable the rule
       Targets:
