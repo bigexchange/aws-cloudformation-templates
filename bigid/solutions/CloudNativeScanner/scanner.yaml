@@ -128,7 +128,6 @@ Parameters:
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
-    Default: ""
   BigIDHostname:
     Description: "The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://)."
     Type: String
