@@ -306,7 +306,7 @@ Resources:
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
-              Value: !Sub "${ScannerHostName}"
+              Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
@@ -362,7 +362,7 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: SCANNER_HOST_NAME
-              Value: !Sub "${ScannerHostName}"
+              Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
