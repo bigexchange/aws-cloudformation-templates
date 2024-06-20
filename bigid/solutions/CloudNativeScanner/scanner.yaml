@@ -17,23 +17,25 @@ Conditions:
           - Ref: BigIDRefreshSecretArn
           - ""
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
-  UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
+  HasLabelerRepository:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: LabelerRepository
+          - ""
 
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Scanner and Lambda Network Configuration"
+          default: "Repository Configuration"
         Parameters:
-          - VpcID
-          - Subnet1
-          - Subnet2
-          - Subnet3
-          - SecurityGroupName
+          - ScannerRepository
+          - NerRepositoryRepository
+          - LabelerRepository
       - Label:
           default: "Scanner Configuration"
         Parameters:
@@ -46,9 +48,6 @@ Metadata:
           - BigIDRefreshToken
           - BigIDRefreshSecretArn
           - BigIDHostname
-      - Label:
-          default: "Scanner Scaling Configuration"
-        Parameters:
           - MaximumScannerCount
           - MinimumScannerCount
           - ScheduleExpression
@@ -59,10 +58,13 @@ Metadata:
           - AttachManagedPolicy
           - ManagedPolicyArn
       - Label:
-          default: "Repository Configuration"
+          default: "Scanner and Lambda Network Configuration"
         Parameters:
-          - ReplacementRepository
-          - NerReplacementRepository
+          - VpcID
+          - Subnet1
+          - Subnet2
+          - Subnet3
+          - SecurityGroupName
       - Label:
           default: "Scanner / Lambda Network Proxy Configuration"
         Parameters:
@@ -160,12 +162,16 @@ Parameters:
   ManagedPolicyArn:
     Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
     Type: String
-  ReplacementRepository:
-    Description: "The full replacement repository URL for the scanner (including tag), e.g., if you are pulling from a separate ECR account. Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-200.16"
+  ScannerRepository:
+    Description: "The full replacement repository URL for the scanner (including tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-123.45"
     Type: String
     Default: ""
-  NerReplacementRepository:
-    Description: "The full replacement repository URL for the NER scanner (including tag), e.g., if you are pulling from a separate ECR account. Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-200.16"
+  NerRepository:
+    Description: "The full replacement repository URL for the NER scanner (including tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-123.45"
+    Type: String
+    Default: ""
+  LabelerRepository:
+    Description: "The full replacement repository URL for the labeler (including tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler:release-123.45"
     Type: String
     Default: ""
   AssignPublicIp:
@@ -211,9 +217,9 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-            - UseDefaultRepository
-            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Ref ReplacementRepository
+            - HasLabelerRepository
+            - !Ref LabelerRepository
+            - !Ref ScannerRepository
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -279,9 +285,9 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-            - UseDefaultRepository
-            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Ref ReplacementRepository
+            - HasLabelerRepository
+            - !Ref LabelerRepository
+            - !Ref ScannerRepository
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -335,10 +341,7 @@ Resources:
               Protocol: tcp
         - Name: bigid-scanner-ner
           Essential: true
-          Image: !If
-            - UseDefaultRepository
-            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
-            - !Ref NerReplacementRepository
+          Image: !Ref NerRepository
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
