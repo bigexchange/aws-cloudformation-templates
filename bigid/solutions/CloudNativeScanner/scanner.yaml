@@ -22,7 +22,6 @@ Conditions:
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
-  IsCustomSchedule: !Equals [ !Ref ScheduleExpression, "custom" ]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -152,12 +151,6 @@ Parameters:
       - "rate(10 minutes)"
       - "rate(30 minutes)"
       - "rate(60 minutes)"
-      - "custom"
-  CustomScheduleMinutes:
-    Description: "Specify the custom rate in minutes if 'custom' is selected for ScheduleExpression."
-    Type: Number
-    Default: 10
-    MinValue: 1
   AttachManagedPolicy:
     Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional."
     Type: String
@@ -582,9 +575,6 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       ScheduleExpression:
-        Fn::If:
-          - IsCustomSchedule
-          - !Sub "rate(${CustomScheduleMinutes} minutes)"
           - !Ref ScheduleExpression
       State: ENABLED # Enable the rule
       Targets:
