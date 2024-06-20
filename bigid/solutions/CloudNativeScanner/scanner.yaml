@@ -143,18 +143,18 @@ Parameters:
     Type: Number
     Default: 1
   ScheduleExpression:
-    Description: "The schedule expression for the scaling Lambda. Choose from predefined rates or select 'custom' to specify your own rate in minutes."
+    Description: "The schedule expression for the scaling Lambda. Choose from predefined rates or select 'custom' to specify your own rate in minute."
     Type: String
-    Default: "rate(10 minutes)"
+    Default: "rate(10 minute)"
     AllowedValues:
-      - "rate(1 minutes)"
-      - "rate(5 minutes)"
-      - "rate(10 minutes)"
-      - "rate(30 minutes)"
-      - "rate(60 minutes)"
+      - "rate(1 minute)"
+      - "rate(5 minute)"
+      - "rate(10 minute)"
+      - "rate(30 minute)"
+      - "rate(60 minute)"
       - "custom"
   CustomScheduleMinutes:
-    Description: "Specify the custom rate in minutes if 'custom' is selected for ScheduleExpression."
+    Description: "Specify the custom rate in minute if 'custom' is selected for ScheduleExpression."
     Type: Number
     Default: 10
     MinValue: 1
@@ -585,7 +585,7 @@ Resources:
       ScheduleExpression:
         Fn::If:
           - IsCustomSchedule
-          - !Sub "rate(${CustomScheduleMinutes} minutes)"
+          - !Sub "rate(${CustomScheduleMinutes} minute)"
           - !Ref ScheduleExpression
       State: ENABLED # Enable the rule
       Targets:
