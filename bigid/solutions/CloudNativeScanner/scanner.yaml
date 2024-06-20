@@ -574,8 +574,7 @@ Resources:
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
-      ScheduleExpression:
-          - !Ref ScheduleExpression
+      ScheduleExpression: !Ref ScheduleExpression
       State: ENABLED # Enable the rule
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
