@@ -27,19 +27,39 @@ Upload the Cloudformation Template, and input the following variables below.
 https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/bigid/solutions/CloudNativeScanner/scanner.yaml
 ```
 
-## Mandatory Input Variables for Cloudformation
+## Input Variables for Cloudformation
 
 
-| Key               | Value                                        | Type   |
-|-------------------|----------------------------------------------|--------|
-| BigIDRefreshToken | `TOKEN`                                      | String |
-| BigIDUIHostname   | `customer.bigid.cloud`                       | String |
-| ImageRepository   | `1234567890.dkr.ecr.us-east-1.amazonaws.com` | String |
-| ImageTagVersion   | `release-xxx`                                | String |
-| SecurityGroupName | `sg-123456`                                  | String |
-| SubnetName        | `subnet-123456`                              | String |
-| NerEnabled        | `false`                                      | Bool   |
-| ScannerCount      | `3`                                          | Int    |
+| Key                      | Value                                        | Type   | Description                                                                                                          |
+|--------------------------|----------------------------------------------|--------|----------------------------------------------------------------------------------------------------------------------|
+| BigIDRefreshToken        | `TOKEN`                                      | String | The refresh token for BigID. This will create an AWS Secret in Secrets Manager to be referenced in the deployment.   |
+| ImageRepository          | `1234567890.dkr.ecr.us-east-1.amazonaws.com` | String | The full replacement repository URL for the scanner (including tag).                                                 |
+| ImageTagVersion          | `release-xxx`                                | String | The tag of the scanner version.                                                                                      |
+| SecurityGroupName        | `sg-123456`                                  | String | The name of the security group to use for the ECS Task Definition for the Scaler. Requires egress over port 443.     |                                      |
+| NerEnabled               | `false`                                      | Bool   |  Enable BigID Named Entity Recognition (NER).(NER).                                                                               |
+| ScannerCount             | `3`                                          | Int    | The number of scanner instances to run.                                                                              |
+| VpcID                    | `vpc-0a1b2c3d4e5f6g7h`                       | String | The VPC ID to use for the ECS Task Definition for the Scanner and Scaler.                                            |
+| Subnet1                  | `subnet-0a1b2c3d4e5f6g7h`                    | String | The first subnet ID to use for the ECS Task Definition for the Scaler and Lambda.                                    |
+| Subnet2                  | `subnet-1a2b3c4d5e6f7g8h`                    | String | The second subnet ID to use for the ECS Task Definition for the Scaler and Lambda.                                   |
+| Subnet3                  | `subnet-2a3b4c5d6e7f8g9h`                    | String | The third subnet ID to use for the ECS Task Definition for the Scaler and Lambda.                                    |
+| ScannerGroupOption       | `Custom`                                     | String | Custom: Any Custom Scanner Group Name Region: Region, which you are deploying the scanner e.g(us-east-1), Account: This will utilize the AWS AccountID where the scanner is being deployed, AccountID-Region: This will be for example dynamically set to 1234567890-us-east-1                                                                                |
+| ScannerCPU               | `8192`                                       | Int    | The amount of CPU units to allocate for the scanner.                                                                |
+| ScannerMemory            | `32768`                                      | Int    | The amount of memory (in MB) to allocate for the scanner.                                                           |
+| ScannerHostName          | `remote-scanner`                             | String | The hostname for the BigID Scanner.                                                                                  |
+| CustomScannerGroupName   | `remote-scanner`                             | String | The Scanner Group Name if the Custom option is selected.                                                            |
+| BigIDRefreshSecretArn    | `arn:aws:secretsmanager:us-east-1:123456789012:secret:scanner-secret-AbCdEf`                                           | String | The ARN of the existing secret to use for BigID Scanner Token (Optional).                                            |
+| BigIDHostname            | `customer.bigid.cloud`                       | String | The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://).          |
+| MaximumScannerCount      | `3`                                          | Int    | The maximum number of BigID scanner instances (replicas) to run.                                                     |
+| MinimumScannerCount      | `1`                                          | Int    | The minimum number of scanner instances to run in the ECS Task Definition if you would like to run 1 scanner all the time set this to 1. If you would like to scale from zero you will need to Set VALIDATE_SCANNER_GROUP=false for Orch in the BigID UI. |
+| ScheduleExpression       | `rate(10 minutes)`                           | String | The schedule expression for the scaling Lambda.                                                                     |
+| AttachManagedPolicy      | `false`                                      | String | Indicate whether to attach a custom managed policy to the role.                                                            |
+| ManagedPolicyArn         | ``                                           | String | The ARN of the managed policy to attach to the role. This is required to access either specific resources that wouldn't be allowed or policies to allow cross account resources                                                               |
+| ReplacementRepository    | `1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-xxx`                                           | String | The full replacement repository URL for the scanner (including tag).                                                 |
+| NerReplacementRepository | `1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-xxx`                                           | String | The full replacement repository URL for the NER scanner (including tag).                                             |
+| AssignPublicIp           | `ENABLED`                                    | String | If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress.                    |
+
+
+
 
 
 ## Enable Scaling from Zero
@@ -53,7 +73,7 @@ Search for `VALIDATE_SCANNER_GROUP`
 ### Step 3.a
 Change the environemnt variable from `true` to `false`
 
-**Once this is completed, you will have to modify your DataSource to be able to be pointed to whichever scanner group is designated within the Cloudformation Template `ScannerGroupName`, this will allow the Scanner to be able to recieve work. If you do not set this the scanner will never recieve work, please consult your Services Engineer, if you need any assistance in modifying this datasources group name.**
+**Once this is completed, you will have to modify your DataSource to be able to be pointed to whichever scanner group is designated within the Cloudformation Template `ScannerGroupName`(Dependent on the Option Chosen, I.E Custom..Etc..Etc.), this will allow the Scanner to be able to recieve work. If you do not set this the scanner will never recieve work, please consult your Services Engineer, if you need any assistance in modifying this datasources group name.**
 
 
 ## ECS Diagram
@@ -83,4 +103,3 @@ Scanner Pod that is scaled out from the Task Definition
 ##### BigID Ner 
 
 Sidecar container in tandem with scanner pod that utilizes NER
-
