@@ -39,6 +39,7 @@ def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_
         print(f"Using proxies: HTTP: {http_proxy}, HTTPS: {https_proxy}")
     else:
         print("No proxy hosts provided.")
+        return {}
     return proxies
 
 # Function to get the system token
