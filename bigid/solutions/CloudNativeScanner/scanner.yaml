@@ -171,15 +171,15 @@ Parameters:
     Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
     Type: String
   ScannerRepository:
-    Description: "The full replacement repository URL for the scanner (including tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-123.45"
+    Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
     Default: ""
   NerRepository:
-    Description: "The full replacement repository URL for the NER scanner (including tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-123.45"
+    Description: "The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
     Type: String
     Default: ""
   LabelerRepository:
-    Description: "The full replacement repository URL for the labeler (including tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler:release-123.45"
+    Description: "The full replacement repository URL for the labeler (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler"
     Type: String
     Default: ""
   AssignPublicIp:
@@ -222,8 +222,8 @@ Resources:
           Essential: true
           Image: !If
             - HasLabelerRepository
-            - !Ref LabelerRepository
-            - !Ref ScannerRepository
+            - !Sub "${LabelerRepository}:${ImageTagVersion}"
+            - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -292,8 +292,8 @@ Resources:
           Essential: true
           Image: !If
             - HasLabelerRepository
-            - !Ref LabelerRepository
-            - !Ref ScannerRepository
+            - !Sub "${LabelerRepository}:${ImageTagVersion}"
+            - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
@@ -349,7 +349,7 @@ Resources:
               Protocol: tcp
         - Name: bigid-ner
           Essential: true
-          Image: !Ref NerRepository
+          Image: !Sub "${NerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
