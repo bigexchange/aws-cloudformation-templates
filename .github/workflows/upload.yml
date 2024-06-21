@@ -88,3 +88,4 @@ jobs:
           else
             aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION-${{ github.ref_name }}.zip --acl public-read
           fi
+

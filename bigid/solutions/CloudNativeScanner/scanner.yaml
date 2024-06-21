@@ -17,32 +17,82 @@ Conditions:
           - Ref: BigIDRefreshSecretArn
           - ""
   ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
-  UseDefaultRepository: !Equals [!Ref ReplacementRepository, ""]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
+  HasLabelerRepository:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: LabelerRepository
+          - ""
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Repository Configuration"
+        Parameters:
+          - ScannerRepository
+          - NerRepository
+          - LabelerRepository
+          - ImageTagVersion
+      - Label:
+          default: "Scanner Configuration"
+        Parameters:
+          - BigIDUIProtocol
+          - BigIDHostname
+          - NerEnabled
+          - ScannerGroupOption
+          - ScannerCPU
+          - ScannerMemory
+          - CustomScannerGroupName
+          - BigIDRefreshToken
+          - BigIDRefreshSecretArn
+          - MaximumScannerCount
+          - MinimumScannerCount
+          - ScheduleExpression
+          - CustomScheduleMinutes
+      - Label:
+          default: "Scanner ARN Policy Configuration"
+        Parameters:
+          - AttachManagedPolicy
+          - ManagedPolicyArn
+      - Label:
+          default: "Scanner and Lambda Network Configuration"
+        Parameters:
+          - VpcID
+          - Subnet1
+          - Subnet2
+          - Subnet3
+          - SecurityGroupName
+      - Label:
+          default: "Scanner / Lambda Network Proxy Configuration"
+        Parameters:
+          - AssignPublicIp
+          - HttpsProxyHost
+          - HttpsProxyPort
+          - HttpProxyHost
+          - HttpProxyPort
 
 Parameters:
   VpcID:
-    Description: "The VPC ID to use for the ECS Task Definition."
+    Description: "The VPC ID to use for the ECS Task Definition for the Scanner and Scaler"
     Type: AWS::EC2::VPC::Id
   Subnet1:
-    Description: "The first subnet ID to use for the ECS Task Definition."
+    Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
   Subnet2:
-    Description: "The second subnet ID to use for the ECS Task Definition."
+    Description: "The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
   Subnet3:
-    Description: "The third subnet ID to use for the ECS Task Definition."
+    Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
-    Description: >-
-      The name of the security group to use for the ECS Task Definition. Please provide the appropriate security group name and ensure the security group is in the same subnet.
+    Description: "The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443"
     Type: AWS::EC2::SecurityGroup::Id
-    AllowedPattern: ".+"
   ImageTagVersion:
-    Description: "The tag version of the scanner image."
+    Description: "The tag of the release, please make sure your images versions correctly tagged. E.G: release-123.45"
     Type: String
     AllowedPattern: ".+"
   ScannerGroupOption:
@@ -53,7 +103,7 @@ Parameters:
       - AccountID
       - AccountID-Region
       - Custom
-    Description: "Option to set the Scanner Group Name."
+    Description: "Option to set the Scanner Group Name. Custom: will be whatever the custom value set is. Region: Will be named after the region the scanner is deploying in. AccountID: Will be the account ID of the account the scanner is located in. AccountID-Region: Will be the AccountID-Region the scanner is currently deployed in"
   NerEnabled:
     Description: "Enable Named Entity Recognition (NER)."
     Type: String
@@ -62,75 +112,95 @@ Parameters:
       - false
     Default: false
   ScannerCPU:
-    Description: >-
-      The amount of CPU units to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048).
+    Description: "The amount of CPU units to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048)."
     Type: Number
     Default: 8192
   ScannerMemory:
-    Description: >-
-      The amount of memory (in MB) to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048).
+    Description: "The amount of memory (in MB) to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048)."
     Type: Number
     Default: 32768
-  ScannerHostName:
-    Description: "The hostname for the scanner."
-    Type: String
-    Default: remote-scanner
   CustomScannerGroupName:
     Description: "The Scanner Group Name if Custom option is selected."
     Type: String
-    Default: "remote-scanner"
+    Default: remote-scanner
   BigIDRefreshToken:
     NoEcho: true
-    Description: "The refresh token for BigID."
+    Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
     Default: ""
   BigIDRefreshSecretArn:
     Type: String
-    Description: The ARN of the existing secret to use for BigID Scanner Token (Optional)
-    Default: ""
+    Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
   BigIDHostname:
-    Description: "The hostname for BigID (e.g., test.bigid.cloud). Do not include the protocol (http:// or https://)."
+    Description: "The hostname for BigID (e.g., test.bigid.cloud). Please DO NOT include the protocol (http:// or https://)."
     Type: String
     AllowedPattern: ".+"
+  BigIDUIProtocol:
+    Description: "The protocol to connect to  BigID UI (either HTTP or HTTPS)."
+    Type: String
+    AllowedValues:
+      - http
+      - https
+    Default: https
   MaximumScannerCount:
     Description: "The maximum number of BigID scanner instances (replicas) to run."
     Type: Number
     Default: 3
   MinimumScannerCount:
-    Description: "The minimum number of scanner Replicas, to scale from 0 set VALIDATE_SCANNER_GROUP=false for Orch, in BigID UI."
+    Description: "The minimum number of scanner replicas. To scale from 0, set VALIDATE_SCANNER_GROUP=false for Orch in the BigID UI."
     Type: Number
     Default: 1
   ScheduleExpression:
-    Description: "The schedule expression for the scaling Lambda"
+    Description: "The schedule expression for the scaling Lambda. Choose from predefined rates or select 'custom' to specify your own rate in minutes."
     Type: String
     Default: "rate(10 minutes)"
+    AllowedValues:
+      - "rate(1 minute)"
+      - "rate(5 minutes)"
+      - "rate(10 minutes)"
+      - "rate(30 minutes)"
+      - "rate(1 hour)"
   AttachManagedPolicy:
-    Description: "Indicate whether to attach a managed policy to the role."
+    Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional."
     Type: String
     Default: "false"
     AllowedValues:
       - "true"
       - "false"
   ManagedPolicyArn:
-    Description: >-
-      The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'.
+    Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
+    Type: String
+  ScannerRepository:
+    Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
     Default: ""
-  ReplacementRepository:
-    Description: The full replacement repository URL for the scanner (including tag)
+  NerRepository:
+    Description: "The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
     Type: String
     Default: ""
-  NerReplacementRepository:
-    Description: The full replacement repository URL for the NER scanner (including tag)
+  LabelerRepository:
+    Description: "The full replacement repository URL for the labeler (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler"
     Type: String
     Default: ""
   AssignPublicIp:
-    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress."
+    Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress. This Public IP allocation is specifically for allowing ECS Service to be assigned a public IP address."
     Type: String
     Default: "ENABLED"
     AllowedValues:
       - "ENABLED"
       - "DISABLED"
+  HttpsProxyHost:
+    Type: String
+    Description: "If utilizing an HTTPS Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER. It must use the HTTP protocol; do not change to HTTPS."
+  HttpsProxyPort:
+    Type: String
+    Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
+  HttpProxyHost:
+    Type: String
+    Description: "If utilizing an HTTP Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER."
+  HttpProxyPort:
+    Type: String
+    Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
 
 Resources:
   RefreshTokenSecret:
@@ -151,20 +221,25 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-            - UseDefaultRepository
-            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Ref ReplacementRepository
+            - HasLabelerRepository
+            - !Sub "${LabelerRepository}:${ImageTagVersion}"
+            - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: BIGID_UI_PROTOCOL_EXT
+              Value: !Ref BigIDUIProtocol
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: SCANNER_JAVA_OPTS
+              Value: !Sub |
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
-              Value: !Sub "${ScannerHostName}"
+              Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
@@ -194,7 +269,6 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: scanner-container
-              awslogs-create-group: true
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
@@ -208,8 +282,6 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
 
-
-
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
@@ -219,22 +291,27 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-            - UseDefaultRepository
-            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-scanner:${ImageTagVersion}"
-            - !Ref ReplacementRepository
+            - HasLabelerRepository
+            - !Sub "${LabelerRepository}:${ImageTagVersion}"
+            - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: BIGID_UI_PROTOCOL_EXT
+              Value: !Ref BigIDUIProtocol
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: SCANNER_JAVA_OPTS
+              Value: !Sub |
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
-              Value: !Sub "${ScannerHostName}"
+              Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
@@ -264,30 +341,32 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: scanner-container
-              awslogs-create-group: true
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
             - ContainerPort: 9999
               HostPort: 9999
               Protocol: tcp
-        - Name: bigid-scanner-ner
+        - Name: bigid-ner
           Essential: true
-          Image: !If
-            - UseDefaultRepository
-            - !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/bigid/bigid-ner:${ImageTagVersion}"
-            - !Ref NerReplacementRepository
+          Image: !Sub "${NerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: BIGID_UI_PROTOCOL_EXT
+              Value: !Ref BigIDUIProtocol
+            - Name: HTTP_PROXY
+              Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
+            - Name: HTTPS_PROXY
+              Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: SCANNER_HOST_NAME
-              Value: !Sub "${ScannerHostName}"
+              Value: "localhost"
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
@@ -317,7 +396,6 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: scanner-ner-container
-              awslogs-create-group: true
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: scannerlogs
           PortMappings:
@@ -418,13 +496,19 @@ Resources:
     Properties:
       Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 30
+      Timeout: 120
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
         S3Key: ecs-scaler-lambda-v1.0.2.zip
       Runtime: python3.11
-
+      VpcConfig:
+        SubnetIds:
+          - !Ref Subnet1
+          - !Ref Subnet2
+          - !Ref Subnet3
+        SecurityGroupIds:
+          - !Sub "${SecurityGroupName}"
   ECSScalerLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
@@ -492,11 +576,17 @@ Resources:
                   - ecr:DescribeRepositories
                   - ecr:GetAuthorizationToken
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: "*"
 
   EventBridgeRule:
     Type: "AWS::Events::Rule"
     Properties:
-      ScheduleExpression: !Ref ScheduleExpression # Schedule to trigger every 10 minutes
+      ScheduleExpression: !Ref ScheduleExpression
       State: ENABLED # Enable the rule
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
@@ -511,6 +601,8 @@ Resources:
                   - !Ref BigIDRefreshSecretArn
                 - '",'
                 - '"host_name":"'
+                - !Ref BigIDUIProtocol
+                - '://'
                 - !Ref BigIDHostname
                 - '",'
                 - '"cluster_name":"'
@@ -545,4 +637,16 @@ Resources:
                 - ','
                 - '"desired_count":'
                 - !Ref MaximumScannerCount
-                - '}'
+                - ','
+                - '"http_proxy_host":"'
+                - !Ref HttpProxyHost
+                - '",'
+                - '"http_proxy_port":"'
+                - !Ref HttpProxyPort
+                - '",'
+                - '"https_proxy_host":"'
+                - !Ref HttpsProxyHost
+                - '",'
+                - '"https_proxy_port":"'
+                - !Ref HttpsProxyPort
+                - '"}'
