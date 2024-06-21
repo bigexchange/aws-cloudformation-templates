@@ -237,7 +237,7 @@ Resources:
               Value: true
             - Name: SCANNER_JAVA_OPTS
               Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx32g -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -307,7 +307,7 @@ Resources:
               Value: true
             - Name: SCANNER_JAVA_OPTS
               Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx32g -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
