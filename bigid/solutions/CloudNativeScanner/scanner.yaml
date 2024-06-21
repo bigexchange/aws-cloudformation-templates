@@ -132,11 +132,11 @@ Parameters:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
   BigIDHostname:
-    Description: "The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://)."
+    Description: "The hostname for BigID (e.g., test.bigid.cloud). Please DO NOT include the protocol (http:// or https://)."
     Type: String
     AllowedPattern: ".+"
   BigIDUIProtocol:
-    Description: "The protocol to use for BigID (either HTTP or HTTPS)."
+    Description: "The protocol to connect to  BigID UI (either HTTP or HTTPS)."
     Type: String
     AllowedValues:
       - http
