@@ -34,7 +34,7 @@ Metadata:
           default: "Repository Configuration"
         Parameters:
           - ScannerRepository
-          - NerRepositoryRepository
+          - NerRepository
           - LabelerRepository
       - Label:
           default: "Scanner Configuration"
@@ -48,6 +48,7 @@ Metadata:
           - BigIDRefreshToken
           - BigIDRefreshSecretArn
           - BigIDHostname
+          - BigIDUIProtocol
           - MaximumScannerCount
           - MinimumScannerCount
           - ScheduleExpression
@@ -134,6 +135,13 @@ Parameters:
     Description: "The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://)."
     Type: String
     AllowedPattern: ".+"
+  BigIDUIProtocol:
+    Description: "The protocol to use for BigID (either HTTP or HTTPS)."
+    Type: String
+    AllowedValues:
+      - http
+      - https
+    Default: https
   MaximumScannerCount:
     Description: "The maximum number of BigID scanner instances (replicas) to run."
     Type: Number
@@ -183,19 +191,15 @@ Parameters:
       - "DISABLED"
   HttpsProxyHost:
     Type: String
-    Default: ""
     Description: "If utilizing an HTTPS Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER. It must use the HTTP protocol; do not change to HTTPS."
   HttpsProxyPort:
     Type: String
-    Default: ""
     Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
   HttpProxyHost:
     Type: String
-    Default: ""
     Description: "If utilizing an HTTP Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER."
   HttpProxyPort:
     Type: String
-    Default: ""
     Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
 
 Resources:
@@ -225,6 +229,8 @@ Resources:
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: BIGID_UI_PROTOCOL_EXT
+              Value: !Ref BigIDUIProtocol
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
@@ -293,6 +299,8 @@ Resources:
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: BIGID_UI_PROTOCOL_EXT
+              Value: !Ref BigIDUIProtocol
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
@@ -339,7 +347,7 @@ Resources:
             - ContainerPort: 9999
               HostPort: 9999
               Protocol: tcp
-        - Name: bigid-scanner-ner
+        - Name: bigid-ner
           Essential: true
           Image: !Ref NerRepository
           Environment:
@@ -347,6 +355,8 @@ Resources:
               Value: !Sub "${BigIDHostname}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
+            - Name: BIGID_UI_PROTOCOL_EXT
+              Value: !Ref BigIDUIProtocol
             - Name: HTTP_PROXY
               Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
             - Name: HTTPS_PROXY
@@ -356,7 +366,7 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: SCANNER_HOST_NAME
-              Value: !Sub "bigid-scanner-${AWS::StackName}"
+              Value: "localhost"
             - Name: SCANNER_GROUP_NAME
               Value: !If
                 - IsCustomGroupName
@@ -486,7 +496,7 @@ Resources:
     Properties:
       Handler: ecs_scaler_lambda.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 30
+      Timeout: 600
       ReservedConcurrentExecutions: 1
       Code:
         S3Bucket: !Sub bigid-ecs-lambda-scaler-${AWS::Region}
@@ -591,6 +601,8 @@ Resources:
                   - !Ref BigIDRefreshSecretArn
                 - '",'
                 - '"host_name":"'
+                - !Ref BigIDUIProtocol
+                - '://'
                 - !Ref BigIDHostname
                 - '",'
                 - '"cluster_name":"'
