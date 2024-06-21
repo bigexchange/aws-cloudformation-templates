@@ -36,19 +36,19 @@ Metadata:
           - ScannerRepository
           - NerRepository
           - LabelerRepository
+          - ImageTagVersion
       - Label:
           default: "Scanner Configuration"
         Parameters:
-          - ImageTagVersion
-          - ScannerGroupOption
+          - BigIDUIProtocol
+          - BigIDHostname
           - NerEnabled
+          - ScannerGroupOption
           - ScannerCPU
           - ScannerMemory
           - CustomScannerGroupName
           - BigIDRefreshToken
           - BigIDRefreshSecretArn
-          - BigIDHostname
-          - BigIDUIProtocol
           - MaximumScannerCount
           - MinimumScannerCount
           - ScheduleExpression
