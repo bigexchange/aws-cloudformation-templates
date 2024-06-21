@@ -80,13 +80,13 @@ Parameters:
     Description: "The VPC ID to use for the ECS Task Definition for the Scanner and Scaler"
     Type: AWS::EC2::VPC::Id
   Subnet1:
-    Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These need to be either public subnets, or private subnets with a NAT Gateway"
+    Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
   Subnet2:
-    Description: "The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These need to be either public subnets, or private subnets with a NAT Gateway"
+    Description: "The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
   Subnet3:
-    Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These need to be either public subnets, or private subnets with a NAT Gateway"
+    Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
   SecurityGroupName:
     Description: "The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443"
