@@ -30,33 +30,59 @@ https://raw.githubusercontent.com/bigexchange/aws-cloudformation-templates/main/
 ## Input Variables for Cloudformation
 
 
-| Key                      | Value                                        | Type   | Description                                                                                                          |
-|--------------------------|----------------------------------------------|--------|----------------------------------------------------------------------------------------------------------------------|
-| BigIDRefreshToken        | `TOKEN`                                      | String | The refresh token for BigID. This will create an AWS Secret in Secrets Manager to be referenced in the deployment.   |
-| ImageRepository          | `1234567890.dkr.ecr.us-east-1.amazonaws.com` | String | The full replacement repository URL for the scanner (including tag).                                                 |
-| ImageTagVersion          | `release-xxx`                                | String | The tag of the scanner version.                                                                                      |
-| SecurityGroupName        | `sg-123456`                                  | String | The name of the security group to use for the ECS Task Definition for the Scaler. Requires egress over port 443.     |                                      |
-| NerEnabled               | `false`                                      | Bool   |  Enable BigID Named Entity Recognition (NER).(NER).                                                                               |
-| ScannerCount             | `3`                                          | Int    | The number of scanner instances to run.                                                                              |
-| VpcID                    | `vpc-0a1b2c3d4e5f6g7h`                       | String | The VPC ID to use for the ECS Task Definition for the Scanner and Scaler.                                            |
-| Subnet1                  | `subnet-0a1b2c3d4e5f6g7h`                    | String | The first subnet ID to use for the ECS Task Definition for the Scaler and Lambda.                                    |
-| Subnet2                  | `subnet-1a2b3c4d5e6f7g8h`                    | String | The second subnet ID to use for the ECS Task Definition for the Scaler and Lambda.                                   |
-| Subnet3                  | `subnet-2a3b4c5d6e7f8g9h`                    | String | The third subnet ID to use for the ECS Task Definition for the Scaler and Lambda.                                    |
-| ScannerGroupOption       | `Custom`                                     | String | Custom: Any Custom Scanner Group Name Region: Region, which you are deploying the scanner e.g(us-east-1), Account: This will utilize the AWS AccountID where the scanner is being deployed, AccountID-Region: This will be for example dynamically set to 1234567890-us-east-1                                                                                |
-| ScannerCPU               | `8192`                                       | Int    | The amount of CPU units to allocate for the scanner.                                                                |
-| ScannerMemory            | `32768`                                      | Int    | The amount of memory (in MB) to allocate for the scanner.                                                           |
-| ScannerHostName          | `remote-scanner`                             | String | The hostname for the BigID Scanner.                                                                                  |
-| CustomScannerGroupName   | `remote-scanner`                             | String | The Scanner Group Name if the Custom option is selected.                                                            |
-| BigIDRefreshSecretArn    | `arn:aws:secretsmanager:us-east-1:123456789012:secret:scanner-secret-AbCdEf`                                           | String | The ARN of the existing secret to use for BigID Scanner Token (Optional).                                            |
-| BigIDHostname            | `customer.bigid.cloud`                       | String | The hostname for BigID (e.g., https://test.bigid.cloud). Please include the protocol (http:// or https://).          |
-| MaximumScannerCount      | `3`                                          | Int    | The maximum number of BigID scanner instances (replicas) to run.                                                     |
-| MinimumScannerCount      | `1`                                          | Int    | The minimum number of scanner instances to run in the ECS Task Definition if you would like to run 1 scanner all the time set this to 1. If you would like to scale from zero you will need to Set VALIDATE_SCANNER_GROUP=false for Orch in the BigID UI. |
-| ScheduleExpression       | `rate(10 minutes)`                           | String | The schedule expression for the scaling Lambda.                                                                     |
-| AttachManagedPolicy      | `false`                                      | String | Indicate whether to attach a custom managed policy to the role.                                                            |
-| ManagedPolicyArn         | ``                                           | String | The ARN of the managed policy to attach to the role. This is required to access either specific resources that wouldn't be allowed or policies to allow cross account resources                                                               |
-| ReplacementRepository    | `1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner:release-xxx`                                           | String | The full replacement repository URL for the scanner (including tag).                                                 |
-| NerReplacementRepository | `1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner:release-xxx`                                           | String | The full replacement repository URL for the NER scanner (including tag).                                             |
-| AssignPublicIp           | `ENABLED`                                    | String | If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress.                    |
+### Repository Configuration
+
+| Parameter            | Description                                                                                                                     | Type   |
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------|--------|
+| ScannerRepository    | The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner | String |
+| NerRepository        | The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner | String |
+| LabelerRepository    | The full replacement repository URL for the labeler (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler | String |
+| ImageTagVersion      | The tag of the release, please make sure your images versions correctly tagged. E.G: release-123.45                            | String |
+
+### Scanner Configuration
+
+| Parameter                 | Description                                                                                                                                            | Type    |
+|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| BigIDUIProtocol           | The protocol to connect to BigID UI (either HTTP or HTTPS).                                                                                            | String  |
+| BigIDHostname             | The hostname for BigID (e.g., test.bigid.cloud). Please DO NOT include the protocol (http:// or https://).                                              | String  |
+| NerEnabled                | Enable Named Entity Recognition (NER).                                                                                                                 | String  |
+| ScannerGroupOption        | Option to set the Scanner Group Name. Custom: will be whatever the custom value set is. Region: Will be named after the region the scanner is deploying in. AccountID: Will be the account ID of the account the scanner is located in. AccountID-Region: Will be the AccountID-Region the scanner is currently deployed in | String  |
+| ScannerCPU                | The amount of CPU units to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048).                                   | Number  |
+| ScannerMemory             | The amount of memory (in MB) to allocate for the scanner. Use increments provided by Amazon (e.g., 256, 512, 1024, 2048).                              | Number  |
+| CustomScannerGroupName    | The Scanner Group Name if Custom option is selected.                                                                                                   | String  |
+| BigIDRefreshToken         | The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment.                              | String  |
+| BigIDRefreshSecretArn     | The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret. | String  |
+| MaximumScannerCount       | The maximum number of BigID scanner instances (replicas) to run.                                                                                       | Number  |
+| MinimumScannerCount       | The minimum number of scanner replicas. To scale from 0, set VALIDATE_SCANNER_GROUP=false for Orch in the BigID UI.                                    | Number  |
+| ScheduleExpression        | The schedule expression for the scaling Lambda. Choose from predefined rates or select 'custom' to specify your own rate in minutes.                    | String  |
+| CustomScheduleMinutes     | Custom schedule in minutes.                                                                                                                            | Number  |
+
+### Scanner ARN Policy Configuration
+
+| Parameter              | Description                                                                                                                           | Type   |
+|------------------------|---------------------------------------------------------------------------------------------------------------------------------------|--------|
+| AttachManagedPolicy    | Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional. | String |
+| ManagedPolicyArn       | The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'. | String |
+
+### Scanner and Lambda Network Configuration
+
+| Parameter          | Description                                                                                                                             | Type                      |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
+| VpcID              | The VPC ID to use for the ECS Task Definition for the Scanner and Scaler.                                                              | AWS::EC2::VPC::Id         |
+| Subnet1            | The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with a NAT, NOTE: do not use a IGW. | AWS::EC2::Subnet::Id      |
+| Subnet2            | The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with a NAT, NOTE: do not use a IGW. | AWS::EC2::Subnet::Id      |
+| Subnet3            | The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with a NAT, NOTE: do not use a IGW. | AWS::EC2::Subnet::Id      |
+| SecurityGroupName  | The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443.               | AWS::EC2::SecurityGroup::Id|
+
+### Scanner / Lambda Network Proxy Configuration
+
+| Parameter       | Description                                                                                                                                                 | Type   |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
+| AssignPublicIp  | If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress. This Public IP allocation is specifically for allowing ECS Service to be assigned a public IP address. | String |
+| HttpsProxyHost  | If utilizing an HTTPS Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER. It must use the HTTP protocol; do not change to HTTPS. | String |
+| HttpsProxyPort  | Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER.                                                                  | String |
+| HttpProxyHost   | If utilizing an HTTP Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER.   | String |
+| HttpProxyPort   | Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER.                                                                  | String |
 
 
 

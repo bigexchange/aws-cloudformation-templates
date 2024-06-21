@@ -92,7 +92,7 @@ Parameters:
     Description: "The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443"
     Type: AWS::EC2::SecurityGroup::Id
   ImageTagVersion:
-    Description: "The tag of the scanner version, please make sure your bigid-scanner image is correctly tagged"
+    Description: "The tag of the release, please make sure your images versions correctly tagged. E.G: release-123.45"
     Type: String
     AllowedPattern: ".+"
   ScannerGroupOption:
