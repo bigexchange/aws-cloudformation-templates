@@ -1,99 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Conditions:
-  IsNer: !Equals
-    - !Ref NerEnabled
-    - true
-  IsScannerOnly: !Equals
-    - !Ref NerEnabled
-    - false
-  ShouldCreateRefreshTokenSecret:
-    Fn::And:
-      - Fn::Not:
-          - Fn::Equals:
-              - Ref: BigIDRefreshToken
-              - ""
-      - Fn::Equals:
-          - Ref: BigIDRefreshSecretArn
-          - ""
-  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
-  IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
-  IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
-  IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
-  IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
-  HasLabelerRepository:
-    Fn::Not:
-      - Fn::Equals:
-          - Ref: LabelerRepository
-          - ""
-  IsHttpProxySet:
-    Fn::Not:
-      - Fn::Equals:
-          - !Ref HttpProxyHost
-          - ""
-  IsHttpProxyPortSet:
-    Fn::Not:
-      - Fn::Equals:
-          - !Ref HttpProxyPort
-          - ""
-  IsHttpsProxySet:
-    Fn::Not:
-      - Fn::Equals:
-          - !Ref HttpsProxyHost
-          - ""
-  IsHttpsProxyPortSet:
-    Fn::Not:
-      - Fn::Equals:
-          - !Ref HttpsProxyPort
-          - ""
-Metadata:
-  AWS::CloudFormation::Interface:
-    ParameterGroups:
-      - Label:
-          default: "Repository Configuration"
-        Parameters:
-          - ScannerRepository
-          - NerRepository
-          - LabelerRepository
-          - ImageTagVersion
-      - Label:
-          default: "Scanner Configuration"
-        Parameters:
-          - BigIDUIProtocol
-          - BigIDHostname
-          - NerEnabled
-          - ScannerGroupOption
-          - ScannerCPU
-          - ScannerMemory
-          - CustomScannerGroupName
-          - BigIDRefreshToken
-          - BigIDRefreshSecretArn
-          - MaximumScannerCount
-          - MinimumScannerCount
-          - ScheduleExpression
-          - CustomScheduleMinutes
-      - Label:
-          default: "Scanner ARN Policy Configuration"
-        Parameters:
-          - AttachManagedPolicy
-          - ManagedPolicyArn
-      - Label:
-          default: "Scanner and Lambda Network Configuration"
-        Parameters:
-          - VpcID
-          - Subnet1
-          - Subnet2
-          - Subnet3
-          - SecurityGroupName
-      - Label:
-          default: "Scanner / Lambda Network Proxy Configuration"
-        Parameters:
-          - AssignPublicIp
-          - HttpsProxyHost
-          - HttpsProxyPort
-          - HttpProxyHost
-          - HttpProxyPort
-
 Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition for the Scanner and Scaler"
@@ -146,7 +52,6 @@ Parameters:
     NoEcho: true
     Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
-    AllowedPattern: "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
@@ -211,6 +116,13 @@ Parameters:
     AllowedValues:
       - "ENABLED"
       - "DISABLED"
+  UseProxy:
+    Description: "Indicate whether to use an HTTP/HTTPS proxy."
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
   HttpsProxyHost:
     Type: String
     Default: ""
@@ -227,6 +139,83 @@ Parameters:
     Type: String
     Default: ""
     Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
+
+Conditions:
+  IsNer: !Equals
+    - !Ref NerEnabled
+    - true
+  IsScannerOnly: !Equals
+    - !Ref NerEnabled
+    - false
+  ShouldCreateRefreshTokenSecret:
+    Fn::And:
+      - Fn::Not:
+          - Fn::Equals:
+              - Ref: BigIDRefreshToken
+              - ""
+      - Fn::Equals:
+          - Ref: BigIDRefreshSecretArn
+          - ""
+  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
+  IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
+  IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
+  IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
+  IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
+  HasLabelerRepository:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: LabelerRepository
+          - ""
+  UseProxyCondition: !Equals [!Ref UseProxy, "true"]
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Repository Configuration"
+        Parameters:
+          - ScannerRepository
+          - NerRepository
+          - LabelerRepository
+          - ImageTagVersion
+      - Label:
+          default: "Scanner Configuration"
+        Parameters:
+          - BigIDUIProtocol
+          - BigIDHostname
+          - NerEnabled
+          - ScannerGroupOption
+          - ScannerCPU
+          - ScannerMemory
+          - CustomScannerGroupName
+          - BigIDRefreshToken
+          - BigIDRefreshSecretArn
+          - MaximumScannerCount
+          - MinimumScannerCount
+          - ScheduleExpression
+          - CustomScheduleMinutes
+      - Label:
+          default: "Scanner ARN Policy Configuration"
+        Parameters:
+          - AttachManagedPolicy
+          - ManagedPolicyArn
+      - Label:
+          default: "Scanner and Lambda Network Configuration"
+        Parameters:
+          - VpcID
+          - Subnet1
+          - Subnet2
+          - Subnet3
+          - SecurityGroupName
+      - Label:
+          default: "Scanner / Lambda Network Proxy Configuration"
+        Parameters:
+          - AssignPublicIp
+          - UseProxy
+          - HttpsProxyHost
+          - HttpsProxyPort
+          - HttpProxyHost
+          - HttpProxyPort
 
 Resources:
   RefreshTokenSecret:
@@ -262,8 +251,12 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+              Value: !If
+                - UseProxyCondition
+                - !Sub |
+                    -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+                - !Sub |
+                    -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -332,8 +325,12 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+              Value: !If
+                - UseProxyCondition
+                - !Sub |
+                    -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+                - !Sub |
+                    -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
@@ -383,22 +380,6 @@ Resources:
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
               Value: !Ref BigIDUIProtocol
-            - Name: HTTP_PROXY
-              Value: !If
-                - IsHttpProxySet
-                - !If
-                    - IsHttpProxyPortSet
-                    - !Sub "${HttpProxyHost}:${HttpProxyPort}"
-                    - !Ref HttpProxyHost
-                - !Ref "AWS::NoValue"
-            - Name: HTTPS_PROXY
-              Value: !If
-                - IsHttpsProxySet
-                - !If
-                    - IsHttpsProxyPortSet
-                    - !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
-                    - !Ref HttpsProxyHost
-                - !Ref "AWS::NoValue"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
@@ -421,25 +402,17 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: scanner-container
-              awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: ner-scanner-logs
-          PortMappings:
-            - ContainerPort: 8080
-              HostPort: 8080
-              Protocol: tcp
+          Environment:
+            - !If
+              - UseProxyCondition
+              - Name: HTTP_PROXY
+                Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
+              - !Ref "AWS::NoValue"
+            - !If
+              - UseProxyCondition
+              - Name: HTTPS_PROXY
+                Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
+              - !Ref "AWS::NoValue"
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
