@@ -213,15 +213,19 @@ Parameters:
       - "DISABLED"
   HttpsProxyHost:
     Type: String
+    Default: ""
     Description: "If utilizing an HTTPS Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER. It must use the HTTP protocol; do not change to HTTPS."
   HttpsProxyPort:
     Type: String
+    Default: ""
     Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
   HttpProxyHost:
     Type: String
+    Default: ""
     Description: "If utilizing an HTTP Proxy, specify so your scanner/scaler can reach out to the internet using a proxy instance. You will need to specify the string as http://your.proxy.example.com:$PORT_NUMBER."
   HttpProxyPort:
     Type: String
+    Default: ""
     Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
 
 Resources:
