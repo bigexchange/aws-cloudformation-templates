@@ -148,7 +148,7 @@ Parameters:
     NoEcho: true
     Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
-    AllowedPattern: ^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$"
+    AllowedPattern: "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
     ConstraintDescription: "The token must be a valid JWT token."
   BigIDRefreshSecretArn:
     Type: String
