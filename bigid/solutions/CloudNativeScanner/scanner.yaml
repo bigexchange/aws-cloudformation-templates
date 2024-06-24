@@ -434,7 +434,7 @@ Resources:
             Options:
               awslogs-group: !Sub bigid-scanner-${AWS::StackName}
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: bigid-scanner
+              awslogs-stream-prefix: bigid-ner
           PortMappings:
             - ContainerPort: 8080
               HostPort: 8080
