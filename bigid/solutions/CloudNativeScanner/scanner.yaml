@@ -26,23 +26,34 @@ Conditions:
       - Fn::Equals:
           - Ref: LabelerRepository
           - ""
-
+  UseProxy:
+    Fn::Or:
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref HttpProxyHost
+              - ""
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref HttpProxyPort
+              - ""
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref HttpsProxyHost
+              - ""
+      - Fn::Not:
+          - Fn::Equals:
+              - !Ref HttpsProxyPort
+              - ""
+  IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Repository Configuration"
-        Parameters:
-          - ScannerRepository
-          - NerRepository
-          - LabelerRepository
-          - ImageTagVersion
-      - Label:
           default: "Scanner Configuration"
         Parameters:
+          - ScannerRepository
           - BigIDUIProtocol
           - BigIDHostname
-          - NerEnabled
           - ScannerGroupOption
           - ScannerCPU
           - ScannerMemory
@@ -53,6 +64,16 @@ Metadata:
           - MinimumScannerCount
           - ScheduleExpression
           - CustomScheduleMinutes
+      - Label:
+          default: "NER Configuration"
+        Parameters:
+          - NerEnabled
+          - NerRepository
+      - Label:
+          default: "Labeler Configuration"
+        Parameters:
+          - LabelerEnabled
+          - LabelerRepository
       - Label:
           default: "Scanner ARN Policy Configuration"
         Parameters:
@@ -127,7 +148,8 @@ Parameters:
     NoEcho: true
     Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
-    Default: ""
+    AllowedPattern: ^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$"
+    ConstraintDescription: "The token must be a valid JWT token."
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
@@ -173,15 +195,19 @@ Parameters:
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
-    Default: ""
+    AllowedPattern: "^[^:]+$"
+    ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
   NerRepository:
     Description: "The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
     Type: String
-    Default: ""
+    AllowedPattern: "^[^:]+$"
+    ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
   LabelerRepository:
     Description: "The full replacement repository URL for the labeler (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler"
     Type: String
-    Default: ""
+    AllowedPattern: "^[^:]+$"
+    ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
+
   AssignPublicIp:
     Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress. This Public IP allocation is specifically for allowing ECS Service to be assigned a public IP address."
     Type: String
@@ -201,7 +227,13 @@ Parameters:
   HttpProxyPort:
     Type: String
     Description: "Port that will be appended to your proxy string http://your.proxy.example.com:$PORT_NUMBER."
-
+  LabelerEnabled:
+    Description: "Enable Labeler."
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -221,7 +253,7 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-            - HasLabelerRepository
+            - IsLabelerEnabled
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
             - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
@@ -235,9 +267,6 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
-            - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -256,6 +285,11 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
+            - !If
+              - UseProxy
+              - Name: SCANNER_JAVA_OPTS
+                Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
+              - !Ref "AWS::NoValue"
           Secrets: 
             !If
               - ShouldCreateRefreshTokenSecret
@@ -268,9 +302,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: scanner-container
+              awslogs-group: !Sub bigid-scanner-${AWS::StackName}
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: scannerlogs
+              awslogs-stream-prefix: bigid-scanner
           PortMappings:
             - ContainerPort: 9999
               HostPort: 9999
@@ -291,7 +325,7 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-            - HasLabelerRepository
+            - IsLabelerEnabled
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
             - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
@@ -305,9 +339,11 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
-            - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+            - !If
+              - UseProxy
+              - Name: SCANNER_JAVA_OPTS
+                Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
+              - !Ref "AWS::NoValue"
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
@@ -340,9 +376,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: scanner-container
+              awslogs-group: !Sub bigid-scanner-${AWS::StackName}
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: scannerlogs
+              awslogs-stream-prefix: bigid-scanner
           PortMappings:
             - ContainerPort: 9999
               HostPort: 9999
@@ -358,9 +394,15 @@ Resources:
             - Name: BIGID_UI_PROTOCOL_EXT
               Value: !Ref BigIDUIProtocol
             - Name: HTTP_PROXY
-              Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
+              Value: !If
+                - UseProxy
+                - !Sub "http://${HttpProxyHost}:${HttpProxyPort}"
+                - !Ref "AWS::NoValue"
             - Name: HTTPS_PROXY
-              Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
+              Value: !If
+                - UseProxy
+                - !Sub "http://${HttpsProxyHost}:${HttpsProxyPort}"
+                - !Ref "AWS::NoValue"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
@@ -395,9 +437,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: scanner-container
+              awslogs-group: !Sub bigid-scanner-${AWS::StackName}
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: ner-logs
+              awslogs-stream-prefix: bigid-scanner
           PortMappings:
             - ContainerPort: 8080
               HostPort: 8080
