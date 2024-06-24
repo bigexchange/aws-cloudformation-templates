@@ -21,11 +21,6 @@ Conditions:
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
   IsAccountIDRegionGroupName: !Equals [!Ref ScannerGroupOption, "AccountID-Region"]
-  HasLabelerRepository:
-    Fn::Not:
-      - Fn::Equals:
-          - Ref: LabelerRepository
-          - ""
   UseProxy:
     Fn::Or:
       - Fn::Not:
