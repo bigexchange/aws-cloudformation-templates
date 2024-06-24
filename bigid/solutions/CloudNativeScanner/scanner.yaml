@@ -128,6 +128,7 @@ Parameters:
     Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
     Default: ""
+    AllowedPattern: ".+"
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
