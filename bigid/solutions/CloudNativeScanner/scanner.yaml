@@ -402,7 +402,6 @@ Resources:
                             - !Ref "AWS::NoValue"
             - Name: RDS_SNAPSCAN_VPC_ID
               Value: !Ref VpcID
-          Environment:
             - !If
               - UseProxyCondition
               - Name: HTTP_PROXY
