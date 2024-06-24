@@ -26,7 +26,26 @@ Conditions:
       - Fn::Equals:
           - Ref: LabelerRepository
           - ""
-
+  IsHttpProxySet:
+    Fn::Not:
+      - Fn::Equals:
+          - !Ref HttpProxyHost
+          - ""
+  IsHttpProxyPortSet:
+    Fn::Not:
+      - Fn::Equals:
+          - !Ref HttpProxyPort
+          - ""
+  IsHttpsProxySet:
+    Fn::Not:
+      - Fn::Equals:
+          - !Ref HttpsProxyHost
+          - ""
+  IsHttpsProxyPortSet:
+    Fn::Not:
+      - Fn::Equals:
+          - !Ref HttpsProxyPort
+          - ""
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -105,7 +124,7 @@ Parameters:
       - Custom
     Description: "Option to set the Scanner Group Name. Custom: will be whatever the custom value set is. Region: Will be named after the region the scanner is deploying in. AccountID: Will be the account ID of the account the scanner is located in. AccountID-Region: Will be the AccountID-Region the scanner is currently deployed in"
   NerEnabled:
-    Description: "Enable Named Entity Recognition (NER)."
+    Description: "Enable BigID Named Entity Recognition (NER)."
     Type: String
     AllowedValues:
       - true
@@ -127,8 +146,7 @@ Parameters:
     NoEcho: true
     Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
-    Default: ""
-    AllowedPattern: ".+"
+    AllowedPattern: "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
@@ -174,15 +192,18 @@ Parameters:
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
-    Default: ""
+    AllowedPattern: "^[a-zA-Z0-9-.]+\\.dkr\\.ecr\\.[a-zA-Z0-9-]+\\.amazonaws\\.com/[a-zA-Z0-9-_/]+$"
+    ConstraintDescription: "The repository URL must not include a tag. Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
   NerRepository:
     Description: "The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
     Type: String
-    Default: ""
+    AllowedPattern: "^[a-zA-Z0-9-.]+\\.dkr\\.ecr\\.[a-zA-Z0-9-]+\\.amazonaws\\.com/[a-zA-Z0-9-_/]+$"
+    ConstraintDescription: "The repository URL must not include a tag. Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
   LabelerRepository:
     Description: "The full replacement repository URL for the labeler (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler"
     Type: String
-    Default: ""
+    AllowedPattern: "^[a-zA-Z0-9-.]+\\.dkr\\.ecr\\.[a-zA-Z0-9-]+\\.amazonaws\\.com/[a-zA-Z0-9-_/]+$"
+    ConstraintDescription: "The repository URL must not include a tag. Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler"
   AssignPublicIp:
     Description: "If set to DISABLED, scanners won't have public IPs. Ensure a NAT or IGW is configured for egress. This Public IP allocation is specifically for allowing ECS Service to be assigned a public IP address."
     Type: String
@@ -359,9 +380,21 @@ Resources:
             - Name: BIGID_UI_PROTOCOL_EXT
               Value: !Ref BigIDUIProtocol
             - Name: HTTP_PROXY
-              Value: !Sub "${HttpProxyHost}:${HttpProxyPort}"
+              Value: !If
+                - IsHttpProxySet
+                - !If
+                    - IsHttpProxyPortSet
+                    - !Sub "${HttpProxyHost}:${HttpProxyPort}"
+                    - !Ref HttpProxyHost
+                - !Ref "AWS::NoValue"
             - Name: HTTPS_PROXY
-              Value: !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
+              Value: !If
+                - IsHttpsProxySet
+                - !If
+                    - IsHttpsProxyPortSet
+                    - !Sub "${HttpsProxyHost}:${HttpsProxyPort}"
+                    - !Ref HttpsProxyHost
+                - !Ref "AWS::NoValue"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
@@ -396,9 +429,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: scanner-ner-container
+              awslogs-group: scanner-container
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: scannerlogs
+              awslogs-stream-prefix: ner-scanner-logs
           PortMappings:
             - ContainerPort: 8080
               HostPort: 8080
