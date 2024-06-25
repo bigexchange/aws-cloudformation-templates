@@ -47,18 +47,20 @@ Metadata:
           default: "Scanner Configuration"
         Parameters:
           - ScannerRepository
+          - ImageTagVersion
+          - BigIDRefreshToken
+          - BigIDRefreshSecretArn
           - BigIDUIProtocol
           - BigIDHostname
           - ScannerGroupOption
           - ScannerCPU
           - ScannerMemory
           - CustomScannerGroupName
-          - BigIDRefreshToken
-          - BigIDRefreshSecretArn
           - MaximumScannerCount
           - MinimumScannerCount
           - ScheduleExpression
           - CustomScheduleMinutes
+
       - Label:
           default: "NER Configuration"
         Parameters:
