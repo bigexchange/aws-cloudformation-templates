@@ -325,11 +325,7 @@ Resources:
         - Name: bigid-scanner
           Essential: true
           Image: !If
-<<<<<<< staging
             - IsLabelerEnabled
-=======
-            - HasLabelerRepository
->>>>>>> main
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
             - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
@@ -380,11 +376,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-<<<<<<< staging
               awslogs-group: !Ref LogGroup
-=======
-              awslogs-group: scanner-container
->>>>>>> main
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
           PortMappings:
@@ -445,11 +437,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-<<<<<<< staging
               awslogs-group: !Ref LogGroup
-=======
-              awslogs-group: scanner-ner-container
->>>>>>> main
               awslogs-region: !Sub ${AWS::Region}
               awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
           PortMappings:
@@ -704,10 +692,7 @@ Resources:
                 - '"https_proxy_port":"'
                 - !Ref HttpsProxyPort
                 - '"}'
-<<<<<<< staging
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub bigid-scanner-${AWS::StackName}
-=======
->>>>>>> main
