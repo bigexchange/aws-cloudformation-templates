@@ -190,17 +190,17 @@ Parameters:
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
-    AllowedPattern: "^[^:]+$"
+    AllowedPattern: "^[^:]*$"
     ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
   NerRepository:
     Description: "The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
     Type: String
-    AllowedPattern: "^[^:]+$"
+    AllowedPattern: "^[^:]*$"
     ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
   LabelerRepository:
     Description: "The full replacement repository URL for the labeler (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-labeler"
     Type: String
-    AllowedPattern: "^[^:]+$"
+    AllowedPattern: "^[^:]*$"
     ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
 
   AssignPublicIp:
@@ -297,9 +297,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub bigid-scanner-${AWS::StackName}
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: bigid-scanner
+              awslogs-stream-prefix: scanner
           PortMappings:
             - ContainerPort: 9999
               HostPort: 9999
@@ -371,9 +371,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub bigid-scanner-${AWS::StackName}
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: bigid-scanner
+              awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
           PortMappings:
             - ContainerPort: 9999
               HostPort: 9999
@@ -432,9 +432,9 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub bigid-scanner-${AWS::StackName}
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: bigid-ner
+              awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
           PortMappings:
             - ContainerPort: 8080
               HostPort: 8080
@@ -687,3 +687,7 @@ Resources:
                 - '"https_proxy_port":"'
                 - !Ref HttpsProxyPort
                 - '"}'
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub bigid-scanner-${AWS::StackName}
