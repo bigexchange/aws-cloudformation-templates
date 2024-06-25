@@ -52,9 +52,12 @@ Metadata:
     ParameterGroups:
       - Label:
           default: "Scanner Configuration"
+          default: "Scanner Configuration"
         Parameters:
           - ScannerRepository
           - ImageTagVersion
+          - BigIDRefreshToken
+          - BigIDRefreshSecretArn
           - BigIDRefreshToken
           - BigIDRefreshSecretArn
           - BigIDUIProtocol
@@ -67,6 +70,17 @@ Metadata:
           - MinimumScannerCount
           - ScheduleExpression
           - CustomScheduleMinutes
+
+      - Label:
+          default: "NER Configuration"
+        Parameters:
+          - NerEnabled
+          - NerRepository
+      - Label:
+          default: "Labeler Configuration"
+        Parameters:
+          - LabelerEnabled
+          - LabelerRepository
 
       - Label:
           default: "NER Configuration"
@@ -106,9 +120,13 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     MinLength: 1
     ConstraintDescription: "VpcID must not be empty."
+    MinLength: 1
+    ConstraintDescription: "VpcID must not be empty."
   Subnet1:
     Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet1 must not be empty."
     MinLength: 1
     ConstraintDescription: "Subnet1 must not be empty."
   Subnet2:
@@ -116,14 +134,20 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
     MinLength: 1
     ConstraintDescription: "Subnet2 must not be empty."
+    MinLength: 1
+    ConstraintDescription: "Subnet2 must not be empty."
   Subnet3:
     Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
     MinLength: 1
     ConstraintDescription: "Subnet3 must not be empty."
+    MinLength: 1
+    ConstraintDescription: "Subnet3 must not be empty."
   SecurityGroupName:
     Description: "The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443"
     Type: AWS::EC2::SecurityGroup::Id
+    MinLength: 1
+    ConstraintDescription: "SecurityGroupName must not be empty."
     MinLength: 1
     ConstraintDescription: "SecurityGroupName must not be empty."
   ImageTagVersion:
@@ -211,9 +235,13 @@ Parameters:
     Type: String
     AllowedPattern: "^[^:]*$"
     ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
+    AllowedPattern: "^[^:]*$"
+    ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
   NerRepository:
     Description: "The full replacement repository URL for the NER scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-ner"
     Type: String
+    AllowedPattern: "^[^:]*$"
+    ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
     AllowedPattern: "^[^:]*$"
     ConstraintDescription: "The repository URL must not include a tag (e.g., :latest)."
   LabelerRepository:
@@ -345,6 +373,7 @@ Resources:
               Condition: COMPLETE
           Image: !If
             - IsLabelerEnabled
+            - IsLabelerEnabled
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
             - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
@@ -386,6 +415,11 @@ Resources:
               - Name: SCANNER_JAVA_OPTS
                 Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
               - !Ref "AWS::NoValue"
+            - !If
+              - UseProxy
+              - Name: SCANNER_JAVA_OPTS
+                Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
+              - !Ref "AWS::NoValue"
           Secrets: 
             - Name: BIGID_REFRESH_TOKEN
               ValueFrom: !If
@@ -396,7 +430,9 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref LogGroup
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: scanner
               awslogs-stream-prefix: scanner
           PortMappings:
             - ContainerPort: 9999
@@ -504,11 +540,14 @@ Resources:
           Essential: true
           Image: !If
             - IsLabelerEnabled
+            - IsLabelerEnabled
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
             - !Sub "${ScannerRepository}:${ImageTagVersion}"
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
+            - Name: LABELER_ENABLED
+              Value: !Sub "${LabelerEnabled}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
@@ -518,6 +557,12 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
+            - !If
+              - UseProxy
+              - Name: SCANNER_JAVA_OPTS
+                Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
+              - !Ref "AWS::NoValue"
               Value: !Sub "${ImageTagVersion}_ECS"
             - !If
               - UseProxy
@@ -555,7 +600,9 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref LogGroup
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
               awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
           PortMappings:
             - ContainerPort: 9999
@@ -576,7 +623,15 @@ Resources:
                 - UseProxy
                 - !Sub "http://${HttpProxyHost}:${HttpProxyPort}"
                 - !Ref "AWS::NoValue"
+              Value: !If
+                - UseProxy
+                - !Sub "http://${HttpProxyHost}:${HttpProxyPort}"
+                - !Ref "AWS::NoValue"
             - Name: HTTPS_PROXY
+              Value: !If
+                - UseProxy
+                - !Sub "http://${HttpsProxyHost}:${HttpsProxyPort}"
+                - !Ref "AWS::NoValue"
               Value: !If
                 - UseProxy
                 - !Sub "http://${HttpsProxyHost}:${HttpsProxyPort}"
@@ -585,6 +640,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
@@ -618,7 +675,9 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref LogGroup
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
               awslogs-stream-prefix: !Sub bigid-scanner-${AWS::StackName}
           PortMappings:
             - ContainerPort: 8080
