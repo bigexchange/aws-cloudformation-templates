@@ -97,18 +97,28 @@ Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition for the Scanner and Scaler"
     Type: AWS::EC2::VPC::Id
+    MinLength: 1
+    ConstraintDescription: "VpcID must not be empty."
   Subnet1:
     Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet1 must not be empty."
   Subnet2:
     Description: "The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet2 must not be empty."
   Subnet3:
     Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet3 must not be empty."
   SecurityGroupName:
     Description: "The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443"
     Type: AWS::EC2::SecurityGroup::Id
+    MinLength: 1
+    ConstraintDescription: "SecurityGroupName must not be empty."
   ImageTagVersion:
     Description: "The tag of the release, please make sure your images versions correctly tagged. E.G: release-123.45"
     Type: String
