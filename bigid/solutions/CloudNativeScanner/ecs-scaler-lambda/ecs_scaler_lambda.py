@@ -29,13 +29,6 @@ def get_secret(refresh_token_secret_id, region_name):
     return secret
 
 def get_ca_cert(ca_secret_arn, region_name):
-    """
-    Fetches the CA certificate from AWS Secrets Manager using the provided ARN.
-
-    :param secret_arn: The ARN of the secret.
-    :param region_name: The AWS region where the secret is stored.
-    :return: The CA certificate as a string, or None if an error occurs.
-    """
     secret = get_secret(ca_secret_arn, region_name)
     if secret:
         try:
@@ -218,7 +211,7 @@ def main(
     region_name,
     scanner_group,
     minimum_desired_count,
-    ca_cert_arn=None  # New parameter for certificate ARN
+    ca_cert_arn
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     print(f"Proxies used: {proxies}")
