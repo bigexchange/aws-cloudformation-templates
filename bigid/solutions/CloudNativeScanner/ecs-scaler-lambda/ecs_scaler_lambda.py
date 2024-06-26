@@ -1,9 +1,9 @@
 import boto3
 import requests
+import json
 
-def get_secret(refresh_token_secret_id, region_name):
-    secret_name = refresh_token_secret_id
-    region_name = region_name  # Replace with your AWS region
+def get_secret(secret_arn, region_name):
+    secret_name = secret_arn
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -27,6 +27,23 @@ def get_secret(refresh_token_secret_id, region_name):
 
     return secret
 
+def get_ca_cert(secret_arn, region_name):
+    secret = get_secret(secret_arn, region_name)
+    if secret:
+        try:
+            secret_dict = json.loads(secret)
+            ca_cert = secret_dict.get("caCert")
+            if ca_cert:
+                return ca_cert
+            else:
+                print("Error: 'caCert' not found in the secret")
+                return None
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON from secret: {e}")
+            return None
+    else:
+        print(f"Error fetching secret with ARN: {secret_arn}")
+        return None
 
 def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
     http_proxy = f"{http_proxy_host}:{http_proxy_port}" if http_proxy_host else None
@@ -43,7 +60,7 @@ def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_
     return proxies
 
 # Function to get the system token
-def get_token(refresh_token, hostname, proxies):
+def get_token(refresh_token, hostname, proxies, cert=None):
     # Check if the hostname is set
     if hostname is None:
         print("Error: 'hostname' variable is not set")
@@ -55,14 +72,20 @@ def get_token(refresh_token, hostname, proxies):
     try:
         print(f"proxies: {proxies}")
         print(f"url: {url}")
-        response = requests.get(url, headers=headers, proxies=proxies)
+        if cert:
+            response = requests.get(url, headers=headers, proxies=proxies, verify=cert)
+        else:
+            response = requests.get(url, headers=headers, proxies=proxies)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
         if 300 <= response.status_code < 400:
             redirect_url = response.headers.get('Location')
             print(f"Redirected to: {redirect_url}")
-            response = requests.get(redirect_url, headers=headers, proxies=proxies,)
+            if cert:
+                response = requests.get(redirect_url, headers=headers, proxies=proxies, verify=cert)
+            else:
+                response = requests.get(redirect_url, headers=headers, proxies=proxies)
             response.raise_for_status()
         else:
             return None
@@ -81,7 +104,6 @@ def get_token(refresh_token, hostname, proxies):
     else:
         print(f"Error: HTTP request failed with status code {response.status_code}")
         return None
-
 
 # Function to scale the ECS task definition
 def scale_ecs_task_definition(cluster_name, service_name, desired_count, region_name):
@@ -111,7 +133,7 @@ def get_scans_jobs(hostname, system_token, scanner_group, proxies):
         if 300 <= response.status_code < 400:
             redirect_url = response.headers.get('Location')
             print(f"Redirected to: {redirect_url}")
-            response = requests.get(redirect_url, headers=headers, proxies=proxies,)
+            response = requests.get(redirect_url, headers=headers, proxies=proxies)
             response.raise_for_status()
         else:
             return None
@@ -175,7 +197,6 @@ def iterate_scanners(system_token, hostname, scanner_group, proxies):
         running.append(status.get("data")[0].get("running", 0))
     return any(running)
 
-
 def main(
     refresh_token_secret_id,
     hostname,
@@ -189,11 +210,18 @@ def main(
     region_name,
     scanner_group,
     minimum_desired_count,
+    cert_arn=None  # New parameter for certificate ARN
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     print(f"Proxies used: {proxies}")
     refresh_token = get_secret(refresh_token_secret_id, region_name)
-    system_token = get_token(refresh_token, hostname, proxies)
+
+    # Fetch the certificate if the ARN is provided
+    cert = None
+    if cert_arn:
+        cert = get_ca_cert(cert_arn, region_name)
+
+    system_token = get_token(refresh_token, hostname, proxies, cert=cert)
     if system_token:
         jobs = get_scans_jobs(hostname, system_token, scanner_group, proxies)
         scanners = get_scanner_list(system_token, hostname, scanner_group, proxies)
@@ -241,6 +269,8 @@ def lambda_handler(event, context):
     http_proxy_port = event.get("http_proxy_port")
     https_proxy_host = event.get("https_proxy_host")
     https_proxy_port = event.get("https_proxy_port")
+    cert_arn = event.get("cert_arn")  # New parameter
+
     result = main(
         refresh_token_secret_id,
         hostname,
@@ -253,11 +283,12 @@ def lambda_handler(event, context):
         desired_count,
         region_name,
         scanner_group,
-        minimum_desired_count
+        minimum_desired_count,
+        cert_arn
     )
-    
-    if result == "Nothing to do": 
-            return {
+
+    if result == "Nothing to do":
+        return {
             "statusCode": 200,
             "body": "Function executed successfully, nothing to do",
         }
