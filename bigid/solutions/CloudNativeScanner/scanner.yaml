@@ -39,6 +39,14 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
+  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACert, "" ] ]
+  HasProxyCACertArn: !Not [ !Equals [ !Ref ProxyCACertArn, "" ] ]
+  UseCreatedProxyCACertSecret: !And
+    - HasProxyCACert
+    - !Equals [ !Ref ProxyCACertArn, "" ]
+  HasProxyCACertOrArn: !Or
+    - HasProxyCACert
+    - HasProxyCACertArn
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
 Metadata:
   AWS::CloudFormation::Interface:
@@ -241,6 +249,15 @@ Parameters:
       - true
       - false
     Default: false
+  ProxyCACert:
+    Description: "The CA certificate content to store in Secrets Manager (if not already created)"
+    Type: String
+    NoEcho: true
+    Default: ""
+  ProxyCACertArn:
+    Description: "The ARN of the existing CA certificate secret in Secrets Manager"
+    Type: String
+    Default: ""
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -319,12 +336,40 @@ Resources:
             - ContainerPort: 9999
               HostPort: 9999
               Protocol: tcp
+          MountPoints: !If
+            - HasProxyCACertOrArn
+            - - ContainerPath: "/etc/ssl/certs"
+                SourceVolume: "certs"
+            - !Ref "AWS::NoValue"
+          DependsOn:
+            - ContainerName: ca-fetcher
+              Condition: COMPLETE
+        - Name: ca-fetcher
+          Image: "amazonlinux:2"
+          Memory: 128
+          Cpu: 128
+          Essential: true
+          MountPoints:
+            - ContainerPath: "/etc/ssl/certs"
+              SourceVolume: "certs"
+          Command: !Sub
+            - |
+              sh -c "yum install -y aws-cli && aws secretsmanager get-secret-value --secret-id ${CaCrtSecretArn} --query SecretString --output text > /etc/ssl/certs/ca.cert"
+            - CaCrtSecretArn: !If
+                - UseCreatedSecret
+                - !Ref CaCertificateSecret
+                - !Ref CaCrtArn
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
+      Volumes:
+        - Name: "certs"
+          Host:
+            SourcePath: "/etc/ssl/certs"
+
 
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
