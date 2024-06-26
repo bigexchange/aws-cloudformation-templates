@@ -27,6 +27,7 @@ def get_secret(secret_arn, region_name):
 
     return secret
 
+<<<<<<< HEAD
 def get_certificates(cert_secret_arn, region_name, cert_keys):
     """
     Fetches the CA certificate, private certificate, and public certificate from AWS Secrets Manager using the provided ARNs.
@@ -53,6 +54,25 @@ def get_certificates(cert_secret_arn, region_name, cert_keys):
             print(f"Error fetching secret with ARN: {secret_arn}")
          
     return certs
+=======
+def get_ca_cert(secret_arn, region_name):
+    secret = get_secret(secret_arn, region_name)
+    if secret:
+        try:
+            secret_dict = json.loads(secret)
+            ca_cert = secret_dict.get("caCert")
+            if ca_cert:
+                return ca_cert
+            else:
+                print("Error: 'caCert' not found in the secret")
+                return None
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON from secret: {e}")
+            return None
+    else:
+        print(f"Error fetching secret with ARN: {secret_arn}")
+        return None
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
 
 def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
     http_proxy = f"{http_proxy_host}:{http_proxy_port}" if http_proxy_host else None
@@ -69,7 +89,11 @@ def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_
     return proxies
 
 # Function to get the system token
+<<<<<<< HEAD
 def get_token(refresh_token, hostname, proxies, certs=None, cert_keys=None):
+=======
+def get_token(refresh_token, hostname, proxies, cert=None):
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
     # Check if the hostname is set
     if hostname is None:
         print("Error: 'hostname' variable is not set")
@@ -92,14 +116,28 @@ def get_token(refresh_token, hostname, proxies, certs=None, cert_keys=None):
     try:
         print(f"proxies: {proxies}")
         print(f"url: {url}")
+<<<<<<< HEAD
         response = requests.get(url, headers=headers, proxies=proxies, verify=verify, cert=cert)
+=======
+        if cert:
+            response = requests.get(url, headers=headers, proxies=proxies, verify=cert)
+        else:
+            response = requests.get(url, headers=headers, proxies=proxies)
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
         if 300 <= response.status_code < 400:
             redirect_url = response.headers.get('Location')
             print(f"Redirected to: {redirect_url}")
+<<<<<<< HEAD
             response = requests.get(redirect_url, headers=headers, proxies=proxies, verify=verify, cert=cert)
+=======
+            if cert:
+                response = requests.get(redirect_url, headers=headers, proxies=proxies, verify=cert)
+            else:
+                response = requests.get(redirect_url, headers=headers, proxies=proxies)
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
             response.raise_for_status()
         else:
             return None
@@ -157,7 +195,11 @@ def get_scans_jobs(hostname, system_token, scanner_group, proxies, certs=None, c
         if 300 <= response.status_code < 400:
             redirect_url = response.headers.get('Location')
             print(f"Redirected to: {redirect_url}")
+<<<<<<< HEAD
             response = requests.get(redirect_url, headers=headers, proxies=proxies, verify=verify, cert=cert)
+=======
+            response = requests.get(redirect_url, headers=headers, proxies=proxies)
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
             response.raise_for_status()
         else:
             return None
@@ -244,15 +286,20 @@ def main(
     region_name,
     scanner_group,
     minimum_desired_count,
+<<<<<<< HEAD
     cert_secret_arn,  
     ca_cert_key,  
     private_cert_key, 
     public_cert_key  
+=======
+    cert_arn=None  # New parameter for certificate ARN
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     print(f"Proxies used: {proxies}")
     refresh_token = get_secret(refresh_token_secret_id, region_name)
 
+<<<<<<< HEAD
     cert_keys = {
         'ca_cert_key': ca_cert_key,
         'private_cert_key': private_cert_key,
@@ -263,6 +310,14 @@ def main(
     certs = get_certificates(cert_secret_arn, region_name, cert_keys)
 
     system_token = get_token(refresh_token, hostname, proxies, certs=certs, cert_keys=cert_keys)
+=======
+    # Fetch the certificate if the ARN is provided
+    cert = None
+    if cert_arn:
+        cert = get_ca_cert(cert_arn, region_name)
+
+    system_token = get_token(refresh_token, hostname, proxies, cert=cert)
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
     if system_token:
         jobs = get_scans_jobs(hostname, system_token, scanner_group, proxies, certs, cert_keys)
         scanners = get_scanner_list(system_token, hostname, scanner_group, proxies, certs, cert_keys)
@@ -310,10 +365,14 @@ def lambda_handler(event, context):
     http_proxy_port = event.get("http_proxy_port")
     https_proxy_host = event.get("https_proxy_host")
     https_proxy_port = event.get("https_proxy_port")
+<<<<<<< HEAD
     cert_secret_arn = event.get("cert_secret_arn") 
     ca_cert_key = event.get("ca_cert_key")  
     private_cert_key = event.get("private_cert_key")  
     public_cert_key = event.get("public_cert_key")  
+=======
+    cert_arn = event.get("cert_arn")  # New parameter
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
 
     result = main(
         refresh_token_secret_id,
@@ -328,10 +387,14 @@ def lambda_handler(event, context):
         region_name,
         scanner_group,
         minimum_desired_count,
+<<<<<<< HEAD
         cert_secret_arn,
         ca_cert_key,
         private_cert_key,
         public_cert_key
+=======
+        cert_arn
+>>>>>>> 106991b7 (Add the CA cert to the lambda and the scanner.yaml)
     )
 
     if result == "Nothing to do":
