@@ -2,8 +2,9 @@ import boto3
 import requests
 import json
 
-def get_secret(secret_arn, region_name):
-    secret_name = secret_arn
+def get_secret(refresh_token_secret_id, region_name):
+    secret_name = refresh_token_secret_id
+    region_name = region_name  # Replace with your AWS region
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -27,8 +28,15 @@ def get_secret(secret_arn, region_name):
 
     return secret
 
-def get_ca_cert(secret_arn, region_name):
-    secret = get_secret(secret_arn, region_name)
+def get_ca_cert(ca_secret_arn, region_name):
+    """
+    Fetches the CA certificate from AWS Secrets Manager using the provided ARN.
+
+    :param secret_arn: The ARN of the secret.
+    :param region_name: The AWS region where the secret is stored.
+    :return: The CA certificate as a string, or None if an error occurs.
+    """
+    secret = get_secret(ca_secret_arn, region_name)
     if secret:
         try:
             secret_dict = json.loads(secret)
@@ -42,7 +50,7 @@ def get_ca_cert(secret_arn, region_name):
             print(f"Error decoding JSON from secret: {e}")
             return None
     else:
-        print(f"Error fetching secret with ARN: {secret_arn}")
+        print(f"Error fetching secret with ARN: {ca_secret_arn}")
         return None
 
 def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
@@ -210,7 +218,7 @@ def main(
     region_name,
     scanner_group,
     minimum_desired_count,
-    cert_arn=None  # New parameter for certificate ARN
+    ca_cert_arn=None  # New parameter for certificate ARN
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     print(f"Proxies used: {proxies}")
@@ -218,8 +226,8 @@ def main(
 
     # Fetch the certificate if the ARN is provided
     cert = None
-    if cert_arn:
-        cert = get_ca_cert(cert_arn, region_name)
+    if ca_cert_arn:
+        cert = get_ca_cert(ca_cert_arn, region_name)
 
     system_token = get_token(refresh_token, hostname, proxies, cert=cert)
     if system_token:
@@ -269,7 +277,7 @@ def lambda_handler(event, context):
     http_proxy_port = event.get("http_proxy_port")
     https_proxy_host = event.get("https_proxy_host")
     https_proxy_port = event.get("https_proxy_port")
-    cert_arn = event.get("cert_arn")  # New parameter
+    ca_cert_arn = event.get("ca_ca_cert_arn")  # New parameter
 
     result = main(
         refresh_token_secret_id,
@@ -284,7 +292,7 @@ def lambda_handler(event, context):
         region_name,
         scanner_group,
         minimum_desired_count,
-        cert_arn
+        ca_cert_arn
     )
 
     if result == "Nothing to do":
