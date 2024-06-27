@@ -27,18 +27,18 @@ def get_secret(secret_arn, region_name):
 
     return secret
 
-def get_certificates(secret_arns, region_name, cert_keys):
+def get_certificates(cert_secret_arn, region_name, cert_keys):
     """
     Fetches the CA certificate, private certificate, and public certificate from AWS Secrets Manager using the provided ARNs.
 
-    :param secret_arns: The ARNs of the secrets.
+    :param cert_secret_arn: The ARNs of the secrets.
     :param region_name: The AWS region where the secrets are stored.
     :param cert_keys: The dictionary containing the keys for ca_cert_key, private_cert_key, and public_cert_key.
     :return: A dictionary with the certificates, or None if an error occurs.
     """
     certs = {cert_keys['ca_cert_key']: None, cert_keys['private_cert_key']: None, cert_keys['public_cert_key']: None}
     
-    for secret_arn in secret_arns:
+    for secret_arn in cert_secret_arn:
         secret = get_secret(secret_arn, region_name)
         if secret:
             try:
@@ -244,7 +244,7 @@ def main(
     region_name,
     scanner_group,
     minimum_desired_count,
-    secret_arns,  
+    cert_secret_arn,  
     ca_cert_key,  
     private_cert_key, 
     public_cert_key  
@@ -260,7 +260,7 @@ def main(
     }
 
     # Fetch the certificates
-    certs = get_certificates(secret_arns, region_name, cert_keys)
+    certs = get_certificates(cert_secret_arn, region_name, cert_keys)
 
     system_token = get_token(refresh_token, hostname, proxies, certs=certs, cert_keys=cert_keys)
     if system_token:
@@ -310,7 +310,7 @@ def lambda_handler(event, context):
     http_proxy_port = event.get("http_proxy_port")
     https_proxy_host = event.get("https_proxy_host")
     https_proxy_port = event.get("https_proxy_port")
-    secret_arns = event.get("secret_arns") 
+    cert_secret_arn = event.get("cert_secret_arn") 
     ca_cert_key = event.get("ca_cert_key")  
     private_cert_key = event.get("private_cert_key")  
     public_cert_key = event.get("public_cert_key")  
@@ -328,7 +328,7 @@ def lambda_handler(event, context):
         region_name,
         scanner_group,
         minimum_desired_count,
-        secret_arns,
+        cert_secret_arn,
         ca_cert_key,
         private_cert_key,
         public_cert_key

@@ -257,7 +257,7 @@ Parameters:
     Type: String
     Default: ""
   ProxyCACertKey:
-    Description: "Proxy CA Certificate Key name this is how you will essentially reference the secret in the secret file E.G (caCert: <ProxyCACertValue> )"
+    Description: "Name of the Proxy CA Certificate Key. This key will be used to reference the secret in the secret file. For example: caCert: <ProxyCACertValue>"
     Type: String
     Default: "caCert"
   ProxyCACertValue:
@@ -266,7 +266,7 @@ Parameters:
     NoEcho: true
     Default: ""
   ProxyPrivateCertKey:
-    Description: "Proxy Private Certificate Key name this is how you will essentially reference the secret in the secret file E.G (privateCert: <ProxyPrivateCertValue> )"
+    Description: "Name of the Proxy Private Certificate Key. This key will be used to reference the secret in the secret file. For example: privateCert: <ProxyPrivateCertValue>"
     Type: String
     Default: "privateCert"
   ProxyPrivateCertValue:
@@ -275,9 +275,9 @@ Parameters:
     NoEcho: true
     Default: ""
   ProxyPublicCertKey:
-   Description: "Proxy Public Certificate Key name this is how you will essentially reference the secret in the secret file E.G (publicCert: <ProxyPublicCertValue> )"
-   Type: String
-   Default: "publicCert"
+    Description: "Name of the Proxy Public Certificate Key. This key will be used to reference the secret in the secret file. For example: publicCert: <ProxyPublicCertValue>"
+    Type: String
+    Default: "publicCert"
   ProxyPublicCertValue:
     Description: "Private Proxy Certificate Contents"
     Type: String
