@@ -46,11 +46,12 @@ def get_certificates(secret_arns, region_name, cert_keys):
                 for key in certs.keys():
                     if secret_dict.get(key):
                         certs[key] = secret_dict.get(key)
+                        print(f"cert found: {key}")
             except json.JSONDecodeError as e:
                 print(f"Error decoding JSON from secret: {e}")
         else:
             print(f"Error fetching secret with ARN: {secret_arn}")
-
+         
     return certs
 
 def get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port):
