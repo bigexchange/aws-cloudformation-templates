@@ -39,15 +39,15 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
-  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACert, "" ] ]
-  HasProxyPrivateCert: !Not [ !Equals [ !Ref ProxyPrivateCert, "" ] ]
-  HasProxyPublicCert: !Not [ !Equals [ !Ref ProxyPublicCert, "" ] ]
-  HasProxyCACertArn: !Not [ !Equals [ !Ref ProxyCACertArn, "" ] ]
+  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACertValue, "" ] ]
+  HasProxyPrivateCert: !Not [ !Equals [ !Ref ProxyPrivateCertValue, "" ] ]
+  HasProxyPublicCert: !Not [ !Equals [ !Ref ProxyPublicCertValue, "" ] ]
+  HasProxyCertArn: !Not [ !Equals [ !Ref ProxyCertArn, "" ] ]
   HasProxyCertOrArn: !Or
     - HasProxyCACert
     - HasProxyPrivateCert
     - HasProxyPublicCert
-    - HasProxyCACertArn
+    - HasProxyCertArn
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
 
 Metadata:
@@ -279,7 +279,7 @@ Parameters:
     Type: String
     Default: "publicCert"
   ProxyPublicCertValue:
-    Description: "Private Proxy Certificate Contents"
+    Description: "Public Proxy Certificate Contents"
     Type: String
     NoEcho: true
     Default: ""
@@ -408,7 +408,7 @@ Resources:
               Command: !Sub
                 - |
                   sh -c "yum install -y aws-cli openjdk jq && \
-                        SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id ${ProxyCACertSecretArn} --query SecretString --output text) && \
+                        SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id ${ProxyCertSecretArn} --query SecretString --output text) && \
                         echo $SECRET_JSON | jq -r '.${ProxyCACertKey}' > /etc/ssl/certs/ca.cert && \
                         keytool -importcert -noprompt -trustcacerts -alias myca -file /etc/ssl/certs/ca.cert -keystore /etc/ssl/certs/truststore.jks; \
                         if [ ! -z \"$(echo $SECRET_JSON | jq -r '.${ProxyPrivateCertKey}')\" ]; then \
@@ -419,7 +419,7 @@ Resources:
                           echo $SECRET_JSON | jq -r '.${ProxyPublicCertKey}' > /etc/ssl/certs/public.cert && \
                           keytool -importcert -noprompt -trustcacerts -alias mypublic -file /etc/ssl/certs/public.cert -keystore /etc/ssl/certs/truststore.jks; \
                         fi"
-                - ProxyCACertSecretArn: !If
+                - ProxyCertSecretArn: !If
                     - HasProxyCertOrArn
                     - !Ref ProxyCertificateSecret
                     - !Ref ProxyCertArn
@@ -857,7 +857,7 @@ Resources:
                       - - ','
                         - '"cert_secret_arn":"'
                         - !If
-                            - HasProxyCACert
+                            - HasProxyCertOrArn
                             - !Ref ProxyCertificateSecret
                             - !Ref ProxyCertArn
                         - '"'
