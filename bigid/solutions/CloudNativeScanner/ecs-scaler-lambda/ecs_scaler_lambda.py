@@ -243,10 +243,10 @@ def main(
     region_name,
     scanner_group,
     minimum_desired_count,
-    secret_arns,  # New parameter for secret ARNs
-    ca_cert_key,  # New parameter for caCert key name
-    private_cert_key,  # New parameter for privateCert key name
-    public_cert_key  # New parameter for publicCert key name
+    secret_arns,  
+    ca_cert_key,  
+    private_cert_key, 
+    public_cert_key  
 ):
     proxies = get_proxies(http_proxy_host, http_proxy_port, https_proxy_host, https_proxy_port)
     print(f"Proxies used: {proxies}")
