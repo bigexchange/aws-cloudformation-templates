@@ -39,9 +39,10 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
-  HasProxyCACert: !Not [!Equals [!Ref ProxyCACertValue, ""]]
-  HasProxyPrivateCert: !Not [!Equals [!Ref ProxyPrivateCertValue, ""]]
-  HasProxyPublicCert: !Not [!Equals [!Ref ProxyPublicCertValue, ""]]
+  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACertValue, "" ] ]
+  HasProxyPrivateCert: !Not [ !Equals [ !Ref ProxyPrivateCertValue, "" ] ]
+  HasProxyPublicCert: !Not [ !Equals [ !Ref ProxyPublicCertValue, "" ] ]
+  HasProxyCertArn: !Not [ !Equals [ !Ref ProxyCertArn, "" ] ]
   HasProxyCertOrArn: !Or
     - HasProxyCACert
     - HasProxyPrivateCert
