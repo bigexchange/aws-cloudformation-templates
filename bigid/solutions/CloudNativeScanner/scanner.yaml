@@ -41,9 +41,11 @@ Conditions:
               - ""
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
   CreateProxyCertSecret: !Equals [!Ref CreateProxyCertificateSecret, "true"]
-  HasProxyCACert: !Not [!Equals [!Ref ProxyCACertValue, ""]]
-  HasProxyPrivateCert: !Not [!Equals [!Ref ProxyPrivateCertValue, ""]]
-  HasProxyPublicCert: !Not [!Equals [!Ref ProxyPublicCertValue, ""]]
+  HasProxyCACertValue: !Not [!Equals [!Ref ProxyCACertValue, ""]]
+  HasProxyPrivateCertValue: !Not [!Equals [!Ref ProxyPrivateCertValue, ""]]
+  HasProxyPublicCertValue: !Not [!Equals [!Ref ProxyPublicCertValue, ""]]
+  ShouldCreateProxyCertSecret: !Equals [!Ref CreateProxyCertificateSecret, "true"]
+  UseProvidedProxyCertArn: !Not [!Equals [!Ref ProxyCertArn, ""]]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -280,6 +282,7 @@ Parameters:
       - "true"
       - "false"
     Default: "false"
+
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -298,19 +301,35 @@ Resources:
         - ""
         - - "{"
           - !If
-            - !Equals [!Ref ProxyCACertValue, ""]
-            - !Sub "\"${ProxyCACertKey}\": \"${ProxyCACertValue}\","
+            - HasProxyCACertValue
+            - !Sub "\"${ProxyCACertKey}\": \"${ProxyCACertValue}\""
             - !Ref "AWS::NoValue"
           - !If
-            - !Equals [!Ref ProxyPrivateCertValue, ""]
-            - !Sub "\"${ProxyPrivateCertKey}\": \"${ProxyPrivateCertValue}\","
+            - HasProxyCACertValue
+            - !If
+              - HasProxyPrivateCertValue
+              - ","
+              - !If
+                - HasProxyPublicCertValue
+                - ","
+                - ""
             - !Ref "AWS::NoValue"
           - !If
-            - !Equals [!Ref ProxyPublicCertValue, ""]
+            - HasProxyPrivateCertValue
+            - !Sub "\"${ProxyPrivateCertKey}\": \"${ProxyPrivateCertValue}\""
+            - !Ref "AWS::NoValue"
+          - !If
+            - HasProxyPrivateCertValue
+            - !If
+              - HasProxyPublicCertValue
+              - ","
+              - ""
+            - !Ref "AWS::NoValue"
+          - !If
+            - HasProxyPublicCertValue
             - !Sub "\"${ProxyPublicCertKey}\": \"${ProxyPublicCertValue}\""
             - !Ref "AWS::NoValue"
           - "}"
-
   ECSCluster:
     Type: "AWS::ECS::Cluster"
 
@@ -363,14 +382,11 @@ Resources:
                 Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
               - !Ref "AWS::NoValue"
           Secrets: 
-            !If
-              - ShouldCreateRefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref RefreshTokenSecret
-              - 
-                - Name: BIGID_REFRESH_TOKEN
-                  ValueFrom: !Ref BigIDRefreshSecretArn
+            - Name: BIGID_REFRESH_TOKEN
+              ValueFrom: !If
+                - ShouldCreateRefreshTokenSecret
+                - !Ref RefreshTokenSecret
+                - !Ref BigIDRefreshSecretArn
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -381,12 +397,56 @@ Resources:
             - ContainerPort: 9999
               HostPort: 9999
               Protocol: tcp
+          MountPoints:
+            - SourceVolume: truststore-volume
+              ContainerPath: /etc/ssl/certs
+        - !If
+            - ShouldCreateProxyCertSecret
+            - Name: truststore-sidecar
+              Essential: true
+              Image: amazonlinux:2
+              EntryPoint: ["sh", "-c"]
+              Command:
+                - |
+                  yum install -y java-1.8.0-openjdk && \
+                  if [ -n "$PROXY_PUBLIC_CERT" ]; then echo "$PROXY_PUBLIC_CERT" > /certs/proxy-public-cert.pem && keytool -importcert -file /certs/proxy-public-cert.pem -keystore /certs/truststore.jks -noprompt; fi && \
+                  if [ -n "$PROXY_PRIVATE_CERT" ]; then echo "$PROXY_PRIVATE_CERT" > /certs/proxy-private-cert.pem && keytool -importcert -file /certs/proxy-private-cert.pem -keystore /certs/truststore.jks -noprompt; fi && \
+                  if [ -n "$PROXY_CA_CERT" ]; then echo "$PROXY_CA_CERT" > /certs/proxy-ca-cert.pem && keytool -importcert -file /certs/proxy-ca-cert.pem -keystore /certs/truststore.jks -noprompt; fi
+              Environment:
+                - !If
+                    - HasProxyPublicCertValue
+                    - Name: PROXY_PUBLIC_CERT
+                      Value: !Ref ProxyPublicCertValue
+                    - !Ref "AWS::NoValue"
+                - !If
+                    - HasProxyPrivateCertValue
+                    - Name: PROXY_PRIVATE_CERT
+                      Value: !Ref ProxyPrivateCertValue
+                    - !Ref "AWS::NoValue"
+                - !If
+                    - HasProxyCACertValue
+                    - Name: PROXY_CA_CERT
+                      Value: !Ref ProxyCACertValue
+                    - !Ref "AWS::NoValue"
+              MountPoints:
+                - SourceVolume: truststore-volume
+                  ContainerPath: /certs
+              LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                  awslogs-group: !Ref LogGroup
+                  awslogs-region: !Sub ${AWS::Region}
+                  awslogs-stream-prefix: sidecar
+            - !Ref "AWS::NoValue"
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
+      Volumes:
+        - Name: truststore-volume
+          Host: {}
 
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -701,7 +761,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       ScheduleExpression: !Ref ScheduleExpression
-      State: ENABLED # Enable the rule
+      State: ENABLED
       Targets:
         - Arn: !GetAtt ECSScalerLambda.Arn
           Id: ECSScalerLambdaTarget
@@ -713,16 +773,27 @@ Resources:
                   - ShouldCreateRefreshTokenSecret
                   - !Ref RefreshTokenSecret
                   - !Ref BigIDRefreshSecretArn
-                - '",'
-                - '"host_name":"'
+                - '","cert_secret_arn":"'
+                - !If
+                  - UseProvidedProxyCertArn
+                  - !Ref ProxyCertArn
+                  - !If
+                    - CreateProxyCertSecret
+                    - !Ref ProxyCertificateSecret
+                    - !Ref "AWS::NoValue"
+                - '","ca_cert_key":"'
+                - !Ref ProxyCACertKey
+                - '","private_cert_key":"'
+                - !Ref ProxyPrivateCertKey
+                - '","public_cert_key":"'
+                - !Ref ProxyPublicCertKey
+                - '","host_name":"'
                 - !Ref BigIDUIProtocol
                 - '://'
                 - !Ref BigIDHostname
-                - '",'
-                - '"cluster_name":"'
+                - '","cluster_name":"'
                 - !Ref ECSCluster
-                - '",'
-                - '"scanner_group":"'
+                - '","scanner_group":"'
                 - !If
                     - IsCustomGroupName
                     - !Ref CustomScannerGroupName
@@ -736,32 +807,24 @@ Resources:
                                 - IsAccountIDRegionGroupName
                                 - !Sub "${AWS::AccountId}-${AWS::Region}"
                                 - !Ref "AWS::NoValue"
-                - '",'
-                - '"service_name":"'
+                - '","service_name":"'
                 - !If
                     - IsNer
                     - !Ref ECSNERService
                     - !Ref ECSScannerService
-                - '",'
-                - '"region_name":"'
+                - '","region_name":"'
                 - !Ref "AWS::Region"
-                - '",'
-                - '"minimum_desired_count":'
+                - '","minimum_desired_count":'
                 - !Ref MinimumScannerCount
-                - ','
-                - '"desired_count":'
+                - ',"desired_count":'
                 - !Ref MaximumScannerCount
-                - ','
-                - '"http_proxy_host":"'
+                - ',"http_proxy_host":"'
                 - !Ref HttpProxyHost
-                - '",'
-                - '"http_proxy_port":"'
+                - '","http_proxy_port":"'
                 - !Ref HttpProxyPort
-                - '",'
-                - '"https_proxy_host":"'
+                - '","https_proxy_host":"'
                 - !Ref HttpsProxyHost
-                - '",'
-                - '"https_proxy_port":"'
+                - '","https_proxy_port":"'
                 - !Ref HttpsProxyPort
                 - '"}'
   LogGroup:
