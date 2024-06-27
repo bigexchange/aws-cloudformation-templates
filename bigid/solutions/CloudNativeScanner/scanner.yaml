@@ -39,6 +39,7 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
+<<<<<<< HEAD
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
   CreateProxyCertSecret: !Equals [!Ref CreateProxyCertificateSecret, "true"]
   HasProxyCACertValue: !Not [!Equals [!Ref ProxyCACertValue, ""]]
@@ -46,6 +47,18 @@ Conditions:
   HasProxyPublicCertValue: !Not [!Equals [!Ref ProxyPublicCertValue, ""]]
   ShouldCreateProxyCertSecret: !Equals [!Ref CreateProxyCertificateSecret, "true"]
   UseProvidedProxyCertArn: !Not [!Equals [!Ref ProxyCertArn, ""]]
+=======
+  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACert, "" ] ]
+  HasProxyPrivateCert: !Not [ !Equals [ !Ref ProxyPrivateCert, "" ] ]
+  HasProxyPublicCert: !Not [ !Equals [ !Ref ProxyPublicCert, "" ] ]
+  HasProxyCACertArn: !Not [ !Equals [ !Ref ProxyCACertArn, "" ] ]
+  HasProxyCertOrArn: !Or
+    - HasProxyCACert
+    - HasProxyPrivateCert
+    - HasProxyPublicCert
+    - HasProxyCACertArn
+  IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
+>>>>>>> f964bc1f (.)
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -247,34 +260,57 @@ Parameters:
       - true
       - false
     Default: false
+<<<<<<< HEAD
+=======
+
+>>>>>>> f964bc1f (.)
   ProxyCertArn:
     Description: "The ARN of the existing certificate secret in Secrets Manager"
     Type: String
     Default: ""
   ProxyCACertKey:
+<<<<<<< HEAD
     Description: "Name of the Proxy CA Certificate Key. This key will be used to reference the secret in the secret file. For example: caCert: <ProxyCACertValue>"
+=======
+    Description: "Proxy CA Certificate Key name this is how you will essentially reference the secret in the secret file E.G (caCert: <ProxyCACertValue> )"
+>>>>>>> f964bc1f (.)
     Type: String
     Default: "caCert"
   ProxyCACertValue:
     Description: "The CA certificate content to store in Secrets Manager (if not already created)"
     Type: String
     NoEcho: true
+<<<<<<< HEAD
   ProxyPrivateCertKey:
     Description: "Name of the Proxy Private Certificate Key. This key will be used to reference the secret in the secret file. For example: privateCert: <ProxyPrivateCertValue>"
+=======
+    Default: ""
+  ProxyPrivateCertKey:
+    Description: "Proxy Private Certificate Key name this is how you will essentially reference the secret in the secret file E.G (privateCert: <ProxyPrivateCertValue> )"
+>>>>>>> f964bc1f (.)
     Type: String
     Default: "privateCert"
   ProxyPrivateCertValue:
     Description: "Private Proxy Certificate Contents"
     Type: String
     NoEcho: true
+<<<<<<< HEAD
   ProxyPublicCertKey:
     Description: "Name of the Proxy Public Certificate Key. This key will be used to reference the secret in the secret file. For example: publicCert: <ProxyPublicCertValue>"
     Type: String
     Default: "publicCert"
+=======
+    Default: ""
+  ProxyPublicCertKey:
+   Description: "Proxy Public Certificate Key name this is how you will essentially reference the secret in the secret file E.G (publicCert: <ProxyPublicCertValue> )"
+   Type: String
+   Default: "publicCert"
+>>>>>>> f964bc1f (.)
   ProxyPublicCertValue:
     Description: "Private Proxy Certificate Contents"
     Type: String
     NoEcho: true
+<<<<<<< HEAD
   CreateProxyCertificateSecret:
     Description: "Specify whether to create the Proxy Certificate Secret"
     Type: String
@@ -283,6 +319,10 @@ Parameters:
       - "false"
     Default: "false"
 
+=======
+    Default: ""
+  
+>>>>>>> f964bc1f (.)
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -290,10 +330,17 @@ Resources:
     Properties:
       Description: !Sub "${AWS::StackName} Scanner Token"
       SecretString: !Ref BigIDRefreshToken
+<<<<<<< HEAD
 
   ProxyCertificateSecret:
     Type: AWS::SecretsManager::Secret
     Condition: CreateProxyCertSecret
+=======
+  
+  ProxyCertificateSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasProxyCertOrArn
+>>>>>>> f964bc1f (.)
     Properties:
       Name: !Sub "${AWS::StackName}-proxy-certificates"
       Description: "Certificates for Proxy Authorization / Authentication"
@@ -301,6 +348,7 @@ Resources:
         - ""
         - - "{"
           - !If
+<<<<<<< HEAD
             - HasProxyCACertValue
             - !Sub "\"${ProxyCACertKey}\": \"${ProxyCACertValue}\""
             - !Ref "AWS::NoValue"
@@ -330,6 +378,22 @@ Resources:
             - !Sub "\"${ProxyPublicCertKey}\": \"${ProxyPublicCertValue}\""
             - !Ref "AWS::NoValue"
           - "}"
+=======
+            - HasProxyCACert
+            - !Sub "\"${ProxyCACertKey}\": \"${ProxyCACertValue}\","
+            - !Ref "AWS::NoValue"
+          - !If
+            - HasProxyPrivateCert
+            - !Sub "\"${ProxyPrivateCertKey}\": \"${ProxyPrivateCertValue}\","
+            - !Ref "AWS::NoValue"
+          - !If
+            - HasProxyPublicCert
+            - !Sub "\"${ProxyPublicCertKey}\": \"${ProxyPublicCertValue}\""
+            - !Ref "AWS::NoValue"
+          - "}"
+
+          
+>>>>>>> f964bc1f (.)
   ECSCluster:
     Type: "AWS::ECS::Cluster"
 
@@ -340,9 +404,12 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
+<<<<<<< HEAD
           DependsOn:
             - ContainerName: truststore-sidecar
               Condition: COMPLETE
+=======
+>>>>>>> f964bc1f (.)
           Image: !If
             - IsLabelerEnabled
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
@@ -358,8 +425,13 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+<<<<<<< HEAD
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_ECS"
+=======
+              - Name: BIGID_VERSION
+                Value: !Sub "${ImageTagVersion}_ECS"
+>>>>>>> f964bc1f (.)
             - Name: SCANNER_JAVA_OPTS
               Value: !Sub |
                 -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort} -Djavax.net.ssl.trustStore=/etc/ssl/certs/truststore.jks
@@ -387,11 +459,22 @@ Resources:
                 Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
               - !Ref "AWS::NoValue"
           Secrets: 
+<<<<<<< HEAD
             - Name: BIGID_REFRESH_TOKEN
               ValueFrom: !If
                 - ShouldCreateRefreshTokenSecret
                 - !Ref RefreshTokenSecret
                 - !Ref BigIDRefreshSecretArn
+=======
+            !If
+              - ShouldCreateRefreshTokenSecret
+              - 
+                - Name: BIGID_REFRESH_TOKEN
+                  ValueFrom: !Ref RefreshTokenSecret
+              - 
+                - Name: BIGID_REFRESH_TOKEN
+                  ValueFrom: !Ref BigIDRefreshSecretArn
+>>>>>>> f964bc1f (.)
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -402,6 +485,7 @@ Resources:
             - ContainerPort: 9999
               HostPort: 9999
               Protocol: tcp
+<<<<<<< HEAD
           MountPoints:
             - SourceVolume: truststore-volume
               ContainerPath: /etc/ssl/certs
@@ -477,12 +561,58 @@ Resources:
               MountPoints:
                 - SourceVolume: truststore-volume
                   ContainerPath: /certs
+=======
+          MountPoints: !If
+            - HasProxyCertOrArn
+            - - ContainerPath: "/etc/ssl/certs"
+                SourceVolume: "certs"
+            - !Ref "AWS::NoValue"
+          DependsOn: !If
+            - HasProxyCertOrArn
+            - - proxy-cert-fetcher
+            - !Ref "AWS::NoValue"
+        - !If
+            - HasProxyCertOrArn
+            - Name: proxy-cert-fetcher
+              Image: "amazonlinux:2"
+              Memory: 128
+              Cpu: 128
+              Essential: true
+              MountPoints:
+                - ContainerPath: "/etc/ssl/certs"
+                  SourceVolume: "certs"
+              Command: !Sub
+                - |
+                  sh -c "yum install -y aws-cli openjdk jq && \
+                        SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id ${ProxyCACertSecretArn} --query SecretString --output text) && \
+                        echo $SECRET_JSON | jq -r '.${ProxyCACertKey}' > /etc/ssl/certs/ca.cert && \
+                        keytool -importcert -noprompt -trustcacerts -alias myca -file /etc/ssl/certs/ca.cert -keystore /etc/ssl/certs/truststore.jks; \
+                        if [ ! -z \"$(echo $SECRET_JSON | jq -r '.${ProxyPrivateCertKey}')\" ]; then \
+                          echo $SECRET_JSON | jq -r '.${ProxyPrivateCertKey}' > /etc/ssl/certs/private.cert && \
+                          keytool -importcert -noprompt -trustcacerts -alias myprivate -file /etc/ssl/certs/private.cert -keystore /etc/ssl/certs/truststore.jks; \
+                        fi && \
+                        if [ ! -z \"$(echo $SECRET_JSON | jq -r '.${ProxyPublicCertKey}')\" ]; then \
+                          echo $SECRET_JSON | jq -r '.${ProxyPublicCertKey}' > /etc/ssl/certs/public.cert && \
+                          keytool -importcert -noprompt -trustcacerts -alias mypublic -file /etc/ssl/certs/public.cert -keystore /etc/ssl/certs/truststore.jks; \
+                        fi"
+                - ProxyCACertSecretArn: !If
+                    - HasProxyCertOrArn
+                    - !Ref ProxyCertificateSecret
+                    - !Ref ProxyCertArn
+                - ProxyCACertKey: !Ref ProxyCACertKey
+                - ProxyPrivateCertKey: !Ref ProxyPrivateCertKey
+                - ProxyPublicCertKey: !Ref ProxyPublicCertKey
+>>>>>>> f964bc1f (.)
               LogConfiguration:
                 LogDriver: awslogs
                 Options:
                   awslogs-group: !Ref LogGroup
                   awslogs-region: !Sub ${AWS::Region}
+<<<<<<< HEAD
                   awslogs-stream-prefix: sidecar
+=======
+                  awslogs-stream-prefix: fetch-cert
+>>>>>>> f964bc1f (.)
             - !Ref "AWS::NoValue"
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
@@ -490,9 +620,19 @@ Resources:
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
+<<<<<<< HEAD
       Volumes:
         - Name: truststore-volume
           Host: {}
+=======
+      Volumes: !If
+        - HasProxyCertOrArn
+        - - Name: "certs"
+            Host:
+              SourcePath: "/etc/ssl/certs"
+        - !Ref "AWS::NoValue"
+
+>>>>>>> f964bc1f (.)
 
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -874,7 +1014,47 @@ Resources:
                 - !Ref HttpsProxyHost
                 - '","https_proxy_port":"'
                 - !Ref HttpsProxyPort
-                - '"}'
+                - '"'
+                - !If
+                    - HasProxyCACert
+                    - !Join
+                      - ""
+                      - - ','
+                        - '"ca_cert_key":"'
+                        - !Ref ProxyCACertKey
+                        - '"'
+                    - !Ref "AWS::NoValue"
+                - !If
+                    - HasProxyPrivateCert
+                    - !Join
+                      - ""
+                      - - ','
+                        - '"private_cert_key":"'
+                        - !Ref ProxyPrivateCertKey
+                        - '"'
+                    - !Ref "AWS::NoValue"
+                - !If
+                    - HasProxyPublicCert
+                    - !Join
+                      - ""
+                      - - ','
+                        - '"public_cert_key":"'
+                        - !Ref ProxyPublicCertKey
+                        - '"'
+                    - !Ref "AWS::NoValue"
+                - !If
+                    - HasProxyCertOrArn
+                    - !Join
+                      - ""
+                      - - ','
+                        - '"cert_secret_arn":"'
+                        - !If
+                            - HasProxyCACert
+                            - !Ref ProxyCertificateSecret
+                            - !Ref ProxyCertArn
+                        - '"'
+                    - !Ref "AWS::NoValue"
+                - '}'
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
