@@ -270,7 +270,7 @@ def lambda_handler(event, context):
     http_proxy_port = event.get("http_proxy_port")
     https_proxy_host = event.get("https_proxy_host")
     https_proxy_port = event.get("https_proxy_port")
-    ca_cert_arn = event.get("ca_ca_cert_arn")  # New parameter
+    ca_cert_arn = event.get("ca_ca_cert_arn") 
 
     result = main(
         refresh_token_secret_id,
