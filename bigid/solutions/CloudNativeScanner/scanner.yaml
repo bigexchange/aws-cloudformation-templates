@@ -39,10 +39,10 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
-  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACertValue, "" ] ]
-  HasProxyPrivateCert: !Not [ !Equals [ !Ref ProxyPrivateCertValue, "" ] ]
-  HasProxyPublicCert: !Not [ !Equals [ !Ref ProxyPublicCertValue, "" ] ]
-  HasProxyCertArn: !Not [ !Equals [ !Ref ProxyCertArn, "" ] ]
+  HasProxyCACert: !Not [!Equals [!Ref ProxyCACertValue, ""]]
+  HasProxyPrivateCert: !Not [!Equals [!Ref ProxyPrivateCertValue, ""]]
+  HasProxyPublicCert: !Not [!Equals [!Ref ProxyPublicCertValue, ""]]
+  HasProxyCertArn: !Not [!Equals [!Ref ProxyCertArn, ""]]
   HasProxyCertOrArn: !Or
     - HasProxyCACert
     - HasProxyPrivateCert
@@ -279,7 +279,7 @@ Parameters:
     Type: String
     Default: "publicCert"
   ProxyPublicCertValue:
-    Description: "Public Proxy Certificate Contents"
+    Description: "Private Proxy Certificate Contents"
     Type: String
     NoEcho: true
     Default: ""
@@ -445,7 +445,6 @@ Resources:
             Host:
               SourcePath: "/etc/ssl/certs"
         - !Ref "AWS::NoValue"
-
 
   ScannerWithNerECSTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
@@ -857,7 +856,7 @@ Resources:
                       - - ','
                         - '"cert_secret_arn":"'
                         - !If
-                            - HasProxyCertOrArn
+                            - HasProxyCACert
                             - !Ref ProxyCertificateSecret
                             - !Ref ProxyCertArn
                         - '"'
