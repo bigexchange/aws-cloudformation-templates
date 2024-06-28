@@ -411,29 +411,48 @@ Resources:
                   set -x && \
                   yum install -y java-1.8.0-openjdk openssl && \
                   mkdir -p ./certs && \
-                  convert_and_import_cert() {
+                  convert_to_pem() {
                     local cert_var="$1"
                     local cert_content="$2"
                     local cert_file="./certs/${cert_var}.pem"
                     echo "Processing $cert_var"
                     if [ -n "$cert_content" ]; then
                       echo "Creating $cert_file with content from $cert_var"
-                      # Ensure the PEM header and footer are on their own lines
-                      formatted_cert=$(echo "$cert_content" | sed 's/-----BEGIN CERTIFICATE-----/-----BEGIN CERTIFICATE-----\n/' | sed 's/-----END CERTIFICATE-----/\n-----END CERTIFICATE-----/' | sed 's/\\n/\n/g')
-                      echo "$formatted_cert" > "$cert_file"
-                      if openssl x509 -in "$cert_file" -noout > /dev/null 2>&1; then
-                        keytool -importcert -file "$cert_file" -keystore ./certs/truststore.jks -storepass changeit -noprompt
-                        echo "$cert_var imported successfully."
+                      # Ensure the PEM header and footer are on their own lines and replace \n with actual newlines
+                      if [ "$cert_var" == "PROXY_PRIVATE_CERT" ]; then
+                        formatted_cert=$(echo "$cert_content" | sed 's/-----BEGIN PRIVATE KEY-----/-----BEGIN PRIVATE KEY-----\n/' | sed 's/-----END PRIVATE KEY-----/\n-----END PRIVATE KEY-----/' | sed 's/\\n/\n/g')
                       else
-                        echo "Invalid $cert_var"
+                        formatted_cert=$(echo "$cert_content" | sed 's/-----BEGIN CERTIFICATE-----/-----BEGIN CERTIFICATE-----\n/' | sed 's/-----END CERTIFICATE-----/\n-----END CERTIFICATE-----/' | sed 's/\\n/\n/g')
                       fi
+                      echo "$formatted_cert" > "$cert_file"
                     else
                       echo "$cert_var not found"
                     fi
                   } && \
-                  convert_and_import_cert "PROXY_PUBLIC_CERT" "$PROXY_PUBLIC_CERT" && \
-                  convert_and_import_cert "PROXY_PRIVATE_CERT" "$PROXY_PRIVATE_CERT" && \
-                  convert_and_import_cert "PROXY_CA_CERT" "$PROXY_CA_CERT"
+                  convert_to_pem "PROXY_PUBLIC_CERT" "$PROXY_PUBLIC_CERT" && \
+                  convert_to_pem "PROXY_PRIVATE_CERT" "$PROXY_PRIVATE_CERT" && \
+                  convert_to_pem "PROXY_CA_CERT" "$PROXY_CA_CERT" && \
+                  # Check if public and private certificates are present
+                  if [ -f "./certs/PROXY_PUBLIC_CERT.pem" ] && [ -f "./certs/PROXY_PRIVATE_CERT.pem" ]; then
+                    echo "Creating PKCS12 file with PROXY_PUBLIC_CERT and PROXY_PRIVATE_CERT" && \
+                    # Combine the private key and public certificate into a PKCS12 file
+                    openssl pkcs12 -export -out ./certs/proxy_cert.p12 -inkey ./certs/PROXY_PRIVATE_CERT.pem -in ./certs/PROXY_PUBLIC_CERT.pem -name proxy_cert -CAfile ./certs/PROXY_CA_CERT.pem -caname root -passout pass:changeit && \
+                    echo "Importing PKCS12 file into Java KeyStore" && \
+                    # Import the PKCS12 file into the Java KeyStore
+                    keytool -importkeystore -destkeystore ./certs/truststore.jks -srckeystore ./certs/proxy_cert.p12 -srcstoretype PKCS12 -alias proxy_cert -deststorepass changeit -srcstorepass changeit -noprompt
+                  else
+                    echo "PROXY_PUBLIC_CERT or PROXY_PRIVATE_CERT is missing, skipping PKCS12 creation"
+                  fi && \
+                  # Import the CA certificate into the Java KeyStore if present
+                  if [ -f "./certs/PROXY_CA_CERT.pem" ]; then
+                    echo "Importing CA certificate into Java KeyStore" && \
+                    keytool -importcert -file ./certs/PROXY_CA_CERT.pem -keystore ./certs/truststore.jks -storepass changeit -noprompt -alias ca_cert
+                  else
+                    echo "PROXY_CA_CERT is missing, skipping CA certificate import"
+                  fi && \
+                  # Output the contents of the truststore to verify
+                  echo "Listing contents of the Java KeyStore" && \
+                  keytool -list -keystore ./certs/truststore.jks -storepass changeit
               Environment:
                 - !If
                     - HasProxyPublicCertValue
