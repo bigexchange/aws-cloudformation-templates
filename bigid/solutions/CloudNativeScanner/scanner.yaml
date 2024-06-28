@@ -408,10 +408,32 @@ Resources:
               EntryPoint: ["sh", "-c"]
               Command:
                 - |
-                  yum install -y java-1.8.0-openjdk && \
-                  if [ -n "$PROXY_PUBLIC_CERT" ]; then echo "$PROXY_PUBLIC_CERT" > /certs/proxy-public-cert.pem && keytool -importcert -file /certs/proxy-public-cert.pem -keystore /certs/truststore.jks -storepass changeit -noprompt; fi && \
-                  if [ -n "$PROXY_PRIVATE_CERT" ]; then echo "$PROXY_PRIVATE_CERT" > /certs/proxy-private-cert.pem && keytool -importcert -file /certs/proxy-private-cert.pem -keystore /certs/truststore.jks -storepass changeit -noprompt; fi && \
-                  if [ -n "$PROXY_CA_CERT" ]; then echo "$PROXY_CA_CERT" > /certs/proxy-ca-cert.pem && keytool -importcert -file /certs/proxy-ca-cert.pem -keystore /certs/truststore.jks -storepass changeit -noprompt; fi
+                  set -x && \
+                  yum install -y java-1.8.0-openjdk openssl && \
+                  mkdir -p ./certs && \
+                  convert_and_import_cert() {
+                    local cert_var="$1"
+                    local cert_content="$2"
+                    local cert_file="./certs/${cert_var}.pem"
+                    echo "Processing $cert_var"
+                    if [ -n "$cert_content" ]; then
+                      echo "Creating $cert_file with content from $cert_var"
+                      # Ensure the PEM header and footer are on their own lines
+                      formatted_cert=$(echo "$cert_content" | sed 's/-----BEGIN CERTIFICATE-----/-----BEGIN CERTIFICATE-----\n/' | sed 's/-----END CERTIFICATE-----/\n-----END CERTIFICATE-----/' | sed 's/\\n/\n/g')
+                      echo "$formatted_cert" > "$cert_file"
+                      if openssl x509 -in "$cert_file" -noout > /dev/null 2>&1; then
+                        keytool -importcert -file "$cert_file" -keystore ./certs/truststore.jks -storepass changeit -noprompt
+                        echo "$cert_var imported successfully."
+                      else
+                        echo "Invalid $cert_var"
+                      fi
+                    else
+                      echo "$cert_var not found"
+                    fi
+                  } && \
+                  convert_and_import_cert "PROXY_PUBLIC_CERT" "$PROXY_PUBLIC_CERT" && \
+                  convert_and_import_cert "PROXY_PRIVATE_CERT" "$PROXY_PRIVATE_CERT" && \
+                  convert_and_import_cert "PROXY_CA_CERT" "$PROXY_CA_CERT"
               Environment:
                 - !If
                     - HasProxyPublicCertValue
