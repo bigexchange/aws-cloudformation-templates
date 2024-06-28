@@ -409,9 +409,9 @@ Resources:
               Command:
                 - |
                   yum install -y java-1.8.0-openjdk && \
-                  if [ -n "$PROXY_PUBLIC_CERT" ]; then echo "$PROXY_PUBLIC_CERT" > /certs/proxy-public-cert.pem && keytool -importcert -file /certs/proxy-public-cert.pem -keystore /certs/truststore.jks -noprompt; fi && \
-                  if [ -n "$PROXY_PRIVATE_CERT" ]; then echo "$PROXY_PRIVATE_CERT" > /certs/proxy-private-cert.pem && keytool -importcert -file /certs/proxy-private-cert.pem -keystore /certs/truststore.jks -noprompt; fi && \
-                  if [ -n "$PROXY_CA_CERT" ]; then echo "$PROXY_CA_CERT" > /certs/proxy-ca-cert.pem && keytool -importcert -file /certs/proxy-ca-cert.pem -keystore /certs/truststore.jks -noprompt; fi
+                  if [ -n "$PROXY_PUBLIC_CERT" ]; then echo "$PROXY_PUBLIC_CERT" > /certs/proxy-public-cert.pem && keytool -importcert -file /certs/proxy-public-cert.pem -keystore /certs/truststore.jks -storepass changeit -noprompt; fi && \
+                  if [ -n "$PROXY_PRIVATE_CERT" ]; then echo "$PROXY_PRIVATE_CERT" > /certs/proxy-private-cert.pem && keytool -importcert -file /certs/proxy-private-cert.pem -keystore /certs/truststore.jks -storepass changeit -noprompt; fi && \
+                  if [ -n "$PROXY_CA_CERT" ]; then echo "$PROXY_CA_CERT" > /certs/proxy-ca-cert.pem && keytool -importcert -file /certs/proxy-ca-cert.pem -keystore /certs/truststore.jks -storepass changeit -noprompt; fi
               Environment:
                 - !If
                     - HasProxyPublicCertValue
