@@ -39,7 +39,6 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
-<<<<<<< HEAD
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
   CreateProxyCertSecret: !Equals [!Ref CreateProxyCertificateSecret, "true"]
   HasProxyCACertValue: !Not [!Equals [!Ref ProxyCACertValue, ""]]
@@ -47,18 +46,6 @@ Conditions:
   HasProxyPublicCertValue: !Not [!Equals [!Ref ProxyPublicCertValue, ""]]
   ShouldCreateProxyCertSecret: !Equals [!Ref CreateProxyCertificateSecret, "true"]
   UseProvidedProxyCertArn: !Not [!Equals [!Ref ProxyCertArn, ""]]
-=======
-  HasProxyCACert: !Not [ !Equals [ !Ref ProxyCACert, "" ] ]
-  HasProxyPrivateCert: !Not [ !Equals [ !Ref ProxyPrivateCert, "" ] ]
-  HasProxyPublicCert: !Not [ !Equals [ !Ref ProxyPublicCert, "" ] ]
-  HasProxyCACertArn: !Not [ !Equals [ !Ref ProxyCACertArn, "" ] ]
-  HasProxyCertOrArn: !Or
-    - HasProxyCACert
-    - HasProxyPrivateCert
-    - HasProxyPublicCert
-    - HasProxyCACertArn
-  IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
->>>>>>> f964bc1f (.)
 
 Metadata:
   AWS::CloudFormation::Interface:
