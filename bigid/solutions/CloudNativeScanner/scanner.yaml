@@ -358,6 +358,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_JAVA_OPTS
               Value: !Sub |
                 -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort} -Djavax.net.ssl.trustStore=/etc/ssl/certs/truststore.jks
@@ -515,13 +517,13 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - !If
               - UseProxy
               - Name: SCANNER_JAVA_OPTS
                 Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
               - !Ref "AWS::NoValue"
-            - Name: BIGID_VERSION
-              Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -583,6 +585,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: "localhost"
             - Name: SCANNER_GROUP_NAME
