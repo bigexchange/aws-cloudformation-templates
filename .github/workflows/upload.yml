@@ -3,14 +3,11 @@ name: AWS Cloudformation Templates Actions
 on:
   push:
     branches:
-      - BCO-15535-Set-Minimum-Scaler-Variable
-    paths:
-      - 'bigid/solutions/CloudNativeScanner/scanner.yaml'
-  workflow_dispatch:
+      - '*'
 
 jobs:
   s3-upload:
-    name: Scanner.yaml Copy
+    name: Upload scanner.yaml
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -18,14 +15,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
-      - name: Copy scanner.yaml to the production bucket
-        run: aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates --acl public-read
-      
+
+      - name: Upload scanner.yaml to S3
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          # Upload to S3
+          if [ "${GITHUB_REF_NAME}" == "main" ]; then
+            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner.yaml --acl public-read
+          else
+            aws s3 cp bigid/solutions/CloudNativeScanner/scanner.yaml s3://bigid-cloudformation-templates/scanner-${{ github.ref_name }}.yaml --acl public-read
+          fi
+
 
   lambda-upload:
     needs: s3-upload
@@ -64,14 +71,21 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::835626702473:role/github-actions-aws-cloud-formation-templates-role
           aws-region: us-east-1
-      - name: Get Version and Upload Lambda function to S3
+      - name: Upload Lambda function to S3
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           # Extract version
           LAMBDA_VERSION=$(yq -r '.Resources.ECSScalerLambdaVersion.Properties.Description' ./bigid/solutions/CloudNativeScanner/scanner.yaml)
           echo "Lambda version: $LAMBDA_VERSION"
-          
+
           # Navigate to the correct directory
           cd bigid/solutions/CloudNativeScanner/ecs-scaler-lambda/
-          
+
           # Upload to S3
-          aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION.zip --acl public-read
+          if [ "${GITHUB_REF_NAME}" == "main" ]; then
+            aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-${LAMBDA_VERSION}.zip --acl public-read
+          else
+            aws s3 cp ecs-scaler-lambda.zip s3://bigid-ecs-lambda-scaler-us-east-1/ecs-scaler-lambda-$LAMBDA_VERSION-${{ github.ref_name }}.zip --acl public-read
+          fi
+
