@@ -151,6 +151,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -218,7 +220,7 @@ Resources:
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: BIGID_VERSION
-              Value: !Sub "${ImageTagVersion}_AWS"
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
@@ -272,6 +274,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "${ScannerHostName}"
             - Name: SCANNER_GROUP_NAME
