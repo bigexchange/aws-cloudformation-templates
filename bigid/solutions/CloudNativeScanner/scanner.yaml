@@ -340,6 +340,9 @@ Resources:
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
+          DependsOn:
+            - ContainerName: truststore-sidecar
+              Condition: COMPLETE
           Image: !If
             - IsLabelerEnabled
             - !Sub "${LabelerRepository}:${ImageTagVersion}"
@@ -403,8 +406,8 @@ Resources:
         - !If
             - ShouldCreateProxyCertSecret
             - Name: truststore-sidecar
-              Essential: true
-              Image: amazonlinux:2
+              Essential: false
+              Image: public.ecr.aws/amazonlinux/amazonlinux:2
               EntryPoint: ["sh", "-c"]
               Command:
                 - |
