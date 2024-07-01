@@ -241,7 +241,7 @@ Parameters:
       - false
     Default: false
   ScannerTaskRoleArn:
-    Description: "Provide ARN for IAM Role for Scanner Permissions, Please reference https://github.com/bigexchange/bigid-aws-discovery-app/blob/main/onboarding-iam/bigid-saas-roles.yaml to create the role and supply the role ARN"
+    Description: "Provide ARN for IAM Role for Scanner Permissions, Please reference https://docs.bigid.com/docs/appendix-x-iam-permission-json-files to create the role and supply the role ARN"
     Type: String
     Default: ""
   
