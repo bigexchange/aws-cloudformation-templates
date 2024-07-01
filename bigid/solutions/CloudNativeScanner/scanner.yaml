@@ -16,7 +16,6 @@ Conditions:
       - Fn::Equals:
           - Ref: BigIDRefreshSecretArn
           - ""
-  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
