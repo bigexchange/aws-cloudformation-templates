@@ -367,6 +367,8 @@ Resources:
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
               Value: !Ref BigIDUIProtocol
+            - Name: LABELER_ENABLED
+              Value: !Sub "${LabelerEnabled}"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
