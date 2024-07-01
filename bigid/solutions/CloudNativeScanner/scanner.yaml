@@ -246,13 +246,6 @@ Parameters:
       - true
       - false
     Default: false
-  LocalDataAccessScannerPermissions:
-    Description: "Create and attach Permission for Local Data Access"
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: false
   AttachCustomIAMRoleForScanner:
     Description: "Provide ARN for IAM Role for Scanner Permissions, please reference documentation, about mandatory minimum IAM permissions <document link here>"
     Type: String
@@ -564,6 +557,16 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
+      Conditions:  
+      Policies:
+        - PolicyName: AssumeCrossAcountRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - sts:AssumeRole
+                Resource: '*'
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -573,6 +576,7 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
+            InlinePolicy:
 
   TaskRolePolicies:
     Type: AWS::IAM::Policy
