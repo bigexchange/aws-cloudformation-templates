@@ -239,6 +239,26 @@ Parameters:
       - true
       - false
     Default: false
+  CrossAccountDataAccessPermissionsCreate:
+    Description: "Create and attach Permission for Cross Account Data Access"
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  LocalDataAccessScannerPermissions:
+    Description: "Create and attach Permission for Local Data Access"
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  AttachCustomIAMRoleForScanner:
+    Description: "Provide ARN for IAM Role for Scanner Permissions, please reference documentation, about mandatory minimum IAM permissions <document link here>"
+    Type: String
+    Default: ""
+    
+
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -322,6 +342,7 @@ Resources:
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
       ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn 
       RequiresCompatibilities:
         - FARGATE
 
@@ -514,14 +535,8 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - !If
-          - ShouldAttachManagedPolicy
-          - !Ref ManagedPolicyArn
-          - !Ref "AWS::NoValue"
 
-  RolePolicies:
+  ECSRolePolicies:
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: BigIDScannerTaskExecutionPolicy
@@ -545,6 +560,44 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSIAMRole
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  TaskRolePolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BigIDScannerTaskExecutionPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:CreateLogGroup",
+                "logs:DescribeLogStreams",
+                "iam:DeleteRolePolicy",
+                "secretsmanager:GetSecretValue",
+              ]
+            Resource: "*"
+      Roles:
+        - !Ref ECSTaskRole
 
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
