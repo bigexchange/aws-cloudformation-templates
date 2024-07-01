@@ -274,9 +274,6 @@ Resources:
               Value: true
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_ECS"
-            - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
