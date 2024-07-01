@@ -16,6 +16,7 @@ Conditions:
       - Fn::Equals:
           - Ref: BigIDRefreshSecretArn
           - ""
+  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
@@ -37,6 +38,7 @@ Conditions:
       - Fn::Not:
           - Fn::Equals:
               - !Ref HttpsProxyPort
+              - ""
   CreateCrossAccountPermissions: 
     Fn::Equals: 
       - Ref: CrossAccountDataAccessPermissionsCreate
@@ -247,7 +249,7 @@ Parameters:
       - false
     Default: false
   ScannerTaskRoleArn:
-    Description: "Provide ARN for IAM Role for Scanner Permissions, Please reference https://github.com/bigexchange/bigid-aws-discovery-app/blob/main/onboarding-iam/bigid-saas-roles.yaml to create the role and supply the role ARN here"
+    Description: "Provide ARN for IAM Role for Scanner Permissions, Please reference https://github.com/bigexchange/bigid-aws-discovery-app/blob/main/onboarding-iam/bigid-saas-roles.yaml to create the role and supply the role ARN"
     Type: String
     Default: ""
   
