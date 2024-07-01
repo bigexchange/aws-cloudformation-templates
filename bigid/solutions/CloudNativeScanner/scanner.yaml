@@ -78,8 +78,8 @@ Metadata:
       - Label:
           default: "Scanner ARN Policy Configuration"
         Parameters:
-          - AttachManagedPolicy
-          - ManagedPolicyArn
+          - CrossAccountDataAccessPermissionsCreate
+          - ScannerTaskRoleArn
       - Label:
           default: "Scanner and Lambda Network Configuration"
         Parameters:
@@ -198,9 +198,6 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-  ManagedPolicyArn:
-    Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
-    Type: String
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
@@ -251,7 +248,7 @@ Parameters:
       - false
     Default: false
   ScannerTaskRoleArn:
-    Description: "Provide ARN for IAM Role for Scanner Permissions, please reference documentation, about mandatory minimum IAM permissions <document link here>"
+    Description: "Provide ARN for IAM Role for Scanner Permissions, Please reference https://github.com/bigexchange/bigid-aws-discovery-app/blob/main/onboarding-iam/bigid-saas-roles.yaml to create the role and supply the role ARN here"
     Type: String
     Default: ""
   
