@@ -38,7 +38,11 @@ Conditions:
       - Fn::Not:
           - Fn::Equals:
               - !Ref HttpsProxyPort
-              - ""
+  CreateCrossAccountPermissions: 
+    Fn::Equals: 
+      - Ref: CrossAccountDataAccessPermissionsCreate
+      - true
+
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
 Metadata:
   AWS::CloudFormation::Interface:
@@ -557,16 +561,18 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
-      Conditions:  
       Policies:
-        - PolicyName: AssumeCrossAcountRole
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action: 
-                  - sts:AssumeRole
-                Resource: '*'
+        Fn::If:
+          - CreateCrossAccountPermissions
+          - - PolicyName: AssumeCrossAcountRole
+              PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: Allow
+                    Action: 
+                      - sts:AssumeRole
+                    Resource: '*'
+          - !Ref "AWS::NoValue"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -576,7 +582,6 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-            InlinePolicy:
 
   TaskRolePolicies:
     Type: AWS::IAM::Policy
