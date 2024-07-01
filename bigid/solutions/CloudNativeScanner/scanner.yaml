@@ -42,8 +42,8 @@ Conditions:
     Fn::Equals: 
       - Ref: CrossAccountDataAccessPermissionsCreate
       - true
-
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
+  IsScannerTaskRoleArnProvided: !Not [!Equals [!Ref ScannerTaskRoleArn, ""]]
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -250,11 +250,11 @@ Parameters:
       - true
       - false
     Default: false
-  AttachCustomIAMRoleForScanner:
+  ScannerTaskRoleArn:
     Description: "Provide ARN for IAM Role for Scanner Permissions, please reference documentation, about mandatory minimum IAM permissions <document link here>"
     Type: String
     Default: ""
-    
+  
 
 Resources:
   RefreshTokenSecret:
@@ -271,6 +271,11 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
     Properties:
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !If
+        - IsScannerTaskRoleArnProvided
+        - !Ref ScannerTaskRoleArn
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -338,8 +343,6 @@ Resources:
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
-      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
-      TaskRoleArn: !GetAtt ECSTaskRole.Arn 
       RequiresCompatibilities:
         - FARGATE
 
@@ -347,7 +350,11 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
     Properties:
-      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !If
+        - IsScannerTaskRoleArnProvided
+        - !Ref ScannerTaskRoleArn
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -519,7 +526,7 @@ Resources:
             - !Ref Subnet3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
 
-  ECSIAMRole:
+  ECSExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
@@ -533,10 +540,10 @@ Resources:
             Action:
               - sts:AssumeRole
 
-  ECSRolePolicies:
+  ECSExecutionRolePolicies:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: BigIDScannerTaskExecutionPolicy
+      PolicyName: BigIDScannerExecutionPolicy
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -556,58 +563,8 @@ Resources:
               ]
             Resource: "*"
       Roles:
-        - !Ref ECSIAMRole
-  ECSTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: "/"
-      Policies:
-        Fn::If:
-          - CreateCrossAccountPermissions
-          - - PolicyName: AssumeCrossAcountRole
-              PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                  - Effect: Allow
-                    Action: 
-                      - sts:AssumeRole
-                    Resource: '*'
-          - !Ref "AWS::NoValue"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - ecs-tasks.amazonaws.com
-            Action:
-              - sts:AssumeRole
-
-  TaskRolePolicies:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: BigIDScannerTaskExecutionPolicy
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Action:
-              [
-                "ecr:GetAuthorizationToken",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:BatchGetImage",
-                "ecr:GetDownloadUrlForLayer",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents",
-                "logs:CreateLogGroup",
-                "logs:DescribeLogStreams",
-                "iam:DeleteRolePolicy",
-                "secretsmanager:GetSecretValue",
-              ]
-            Resource: "*"
-      Roles:
-        - !Ref ECSTaskRole
-
+        - !Ref ECSExecutionRole
+  
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
     Properties:
