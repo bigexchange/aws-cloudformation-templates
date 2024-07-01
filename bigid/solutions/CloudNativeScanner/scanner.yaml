@@ -615,8 +615,6 @@ Resources:
               Value: true
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_ECS"
-            - Name: BIGID_VERSION
-              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: "localhost"
             - Name: SCANNER_GROUP_NAME
