@@ -191,13 +191,6 @@ Parameters:
       - "rate(10 minutes)"
       - "rate(30 minutes)"
       - "rate(1 hour)"
-  AttachManagedPolicy:
-    Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional."
-    Type: String
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
@@ -575,7 +568,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSExecutionRole
-          
+
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
     Properties:
