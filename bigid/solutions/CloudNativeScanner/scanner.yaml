@@ -16,7 +16,6 @@ Conditions:
       - Fn::Equals:
           - Ref: BigIDRefreshSecretArn
           - ""
-  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
@@ -242,7 +241,7 @@ Parameters:
       - false
     Default: false
   CrossAccountDataAccessPermissionsCreate:
-    Description: "Create and attach Permission for Cross Account Data Access"
+    Description: "Create and attach Permission for Cross Account Data Access from the ECS Task Definition"
     Type: String
     AllowedValues:
       - true
@@ -562,7 +561,21 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref ECSExecutionRole
-  
+  CrossAccountAssumeRolePolicy:
+    Type: AWS::IAM::Policy
+    Condition: CreateCrossAccountPermissions
+    Properties:
+      PolicyName: CrossAccountAssumeRolePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - sts:AssumeRole
+            Resource: "*"
+      Roles:
+        - !Ref ECSExecutionRole
+          
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
     Properties:
