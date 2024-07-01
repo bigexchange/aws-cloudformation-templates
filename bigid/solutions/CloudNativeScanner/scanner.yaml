@@ -153,10 +153,8 @@ Parameters:
     Default: remote-scanner
   BigIDRefreshToken:
     NoEcho: true
-    Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
-    AllowedPattern: "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
-    ConstraintDescription: "The token must be a valid JWT token."
+    Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
@@ -270,15 +268,14 @@ Resources:
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
               Value: !Ref BigIDUIProtocol
+            - Name: LABELER_ENABLED
+              Value: !Sub "${LabelerEnabled}"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
             - Name: BIGID_VERSION
               Value: !Sub "${ImageTagVersion}_ECS"
-            - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -343,6 +340,8 @@ Resources:
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
+            - Name: LABELER_ENABLED
+              Value: !Sub "${LabelerEnabled}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
