@@ -16,7 +16,6 @@ Conditions:
       - Fn::Equals:
           - Ref: BigIDRefreshSecretArn
           - ""
-  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
@@ -39,7 +38,12 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
+  CreateCrossAccountPermissions: 
+    Fn::Equals: 
+      - Ref: CrossAccountDataAccessPermissionsCreate
+      - true
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
+  IsScannerTaskRoleArnProvided: !Not [!Equals [!Ref ScannerTaskRoleArn, ""]]
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -74,8 +78,8 @@ Metadata:
       - Label:
           default: "Scanner ARN Policy Configuration"
         Parameters:
-          - AttachManagedPolicy
-          - ManagedPolicyArn
+          - CrossAccountDataAccessPermissionsCreate
+          - ScannerTaskRoleArn
       - Label:
           default: "Scanner and Lambda Network Configuration"
         Parameters:
@@ -187,16 +191,6 @@ Parameters:
       - "rate(10 minutes)"
       - "rate(30 minutes)"
       - "rate(1 hour)"
-  AttachManagedPolicy:
-    Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional."
-    Type: String
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-  ManagedPolicyArn:
-    Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
-    Type: String
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
@@ -239,6 +233,19 @@ Parameters:
       - true
       - false
     Default: false
+  CrossAccountDataAccessPermissionsCreate:
+    Description: "Create and attach Permission for Cross Account Data Access from the ECS Task Definition"
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  ScannerTaskRoleArn:
+    Description: "Provide ARN for IAM Role for Scanner Permissions, Please utilize https://bigid-cloudformation-templates.s3.amazonaws.com/bigid-saas-roles-latest.yaml to create the role and supply the role ARN"
+    Type: String
+    Default: ""
+  
+
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -254,6 +261,11 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
     Properties:
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !If
+        - IsScannerTaskRoleArnProvided
+        - !Ref ScannerTaskRoleArn
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -321,7 +333,6 @@ Resources:
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
-      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
 
@@ -329,7 +340,11 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
     Properties:
-      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !If
+        - IsScannerTaskRoleArnProvided
+        - !Ref ScannerTaskRoleArn
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -501,7 +516,7 @@ Resources:
             - !Ref Subnet3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
 
-  ECSIAMRole:
+  ECSExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
@@ -514,17 +529,11 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - !If
-          - ShouldAttachManagedPolicy
-          - !Ref ManagedPolicyArn
-          - !Ref "AWS::NoValue"
 
-  RolePolicies:
+  ECSExecutionRolePolicies:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: BigIDScannerTaskExecutionPolicy
+      PolicyName: BigIDScannerExecutionPolicy
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -544,7 +553,21 @@ Resources:
               ]
             Resource: "*"
       Roles:
-        - !Ref ECSIAMRole
+        - !Ref ECSExecutionRole
+  CrossAccountAssumeRolePolicy:
+    Type: AWS::IAM::Policy
+    Condition: CreateCrossAccountPermissions
+    Properties:
+      PolicyName: CrossAccountAssumeRolePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - sts:AssumeRole
+            Resource: "*"
+      Roles:
+        - !Ref ECSExecutionRole
 
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
