@@ -16,7 +16,6 @@ Conditions:
       - Fn::Equals:
           - Ref: BigIDRefreshSecretArn
           - ""
-  ShouldAttachManagedPolicy: !Equals [!Ref AttachManagedPolicy, "true"]
   IsCustomGroupName: !Equals [!Ref ScannerGroupOption, "Custom"]
   IsRegionGroupName: !Equals [!Ref ScannerGroupOption, "Region"]
   IsAccountIDGroupName: !Equals [!Ref ScannerGroupOption, "AccountID"]
@@ -39,7 +38,12 @@ Conditions:
           - Fn::Equals:
               - !Ref HttpsProxyPort
               - ""
+  CreateCrossAccountPermissions: 
+    Fn::Equals: 
+      - Ref: CrossAccountDataAccessPermissionsCreate
+      - true
   IsLabelerEnabled: !Equals [!Ref LabelerEnabled, "true"]
+  IsScannerTaskRoleArnProvided: !Not [!Equals [!Ref ScannerTaskRoleArn, ""]]
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -74,8 +78,8 @@ Metadata:
       - Label:
           default: "Scanner ARN Policy Configuration"
         Parameters:
-          - AttachManagedPolicy
-          - ManagedPolicyArn
+          - CrossAccountDataAccessPermissionsCreate
+          - ScannerTaskRoleArn
       - Label:
           default: "Scanner and Lambda Network Configuration"
         Parameters:
@@ -97,18 +101,28 @@ Parameters:
   VpcID:
     Description: "The VPC ID to use for the ECS Task Definition for the Scanner and Scaler"
     Type: AWS::EC2::VPC::Id
+    MinLength: 1
+    ConstraintDescription: "VpcID must not be empty."
   Subnet1:
     Description: "The first subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet1 must not be empty."
   Subnet2:
     Description: "The second subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet2 must not be empty."
   Subnet3:
     Description: "The third subnet ID to use for the ECS Task Definition for the Scaler and for the Lambda. These will need to be configured privately with VPC Endpoints or Subnet with an NAT, NOTE: do not use a IGW"
     Type: AWS::EC2::Subnet::Id
+    MinLength: 1
+    ConstraintDescription: "Subnet3 must not be empty."
   SecurityGroupName:
     Description: "The name of the security group to use for the ECS Task Definition for the Scaler. This will require egress over port 443"
     Type: AWS::EC2::SecurityGroup::Id
+    MinLength: 1
+    ConstraintDescription: "SecurityGroupName must not be empty."
   ImageTagVersion:
     Description: "The tag of the release, please make sure your images versions correctly tagged. E.G: release-123.45"
     Type: String
@@ -143,10 +157,8 @@ Parameters:
     Default: remote-scanner
   BigIDRefreshToken:
     NoEcho: true
-    Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
     Type: String
-    AllowedPattern: "^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
-    ConstraintDescription: "The token must be a valid JWT token."
+    Description: "The refresh token for BigID. This will create an AWS Secret in Secrets Manager which will be referenced in the deployment."
   BigIDRefreshSecretArn:
     Type: String
     Description: "The ARN of the existing secret to use for BigID Scanner Token (Optional). You will need to have created an AWS Secret and specify it with the full ARN for the secret."
@@ -179,16 +191,6 @@ Parameters:
       - "rate(10 minutes)"
       - "rate(30 minutes)"
       - "rate(1 hour)"
-  AttachManagedPolicy:
-    Description: "Indicate whether to attach a managed policy to the role. This policy is a requirement. If you have an external policy to attach directly to the scanner role to allow it to scan resources inside/outside the account, this is optional."
-    Type: String
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-  ManagedPolicyArn:
-    Description: "The ARN of the managed policy to attach to the role. Provide a value for this parameter only if 'AttachManagedPolicy' is set to 'true'."
-    Type: String
   ScannerRepository:
     Description: "The full replacement repository URL for the scanner (excluding tag), Example: 1234567890.dkr.ecr.us-east-1.amazonaws.com/bigid/bigid-scanner"
     Type: String
@@ -231,6 +233,19 @@ Parameters:
       - true
       - false
     Default: false
+  CrossAccountDataAccessPermissionsCreate:
+    Description: "Create and attach Permission for Cross Account Data Access from the ECS Task Definition"
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  ScannerTaskRoleArn:
+    Description: "Provide ARN for IAM Role for Scanner Permissions, Please utilize https://bigid-cloudformation-templates.s3.amazonaws.com/bigid-saas-roles-latest.yaml to create the role and supply the role ARN"
+    Type: String
+    Default: ""
+  
+
 Resources:
   RefreshTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -246,6 +261,11 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsScannerOnly
     Properties:
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !If
+        - IsScannerTaskRoleArnProvided
+        - !Ref ScannerTaskRoleArn
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -260,13 +280,14 @@ Resources:
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
               Value: !Ref BigIDUIProtocol
+            - Name: LABELER_ENABLED
+              Value: !Sub "${LabelerEnabled}"
             - Name: DISABLE_NFS_AUTOMOUNT
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
-            - Name: SCANNER_JAVA_OPTS
-              Value: !Sub |
-                -Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -312,7 +333,6 @@ Resources:
       Cpu: !Sub "${ScannerCPU}"
       Memory: !Sub "${ScannerMemory}"
       NetworkMode: awsvpc
-      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
       RequiresCompatibilities:
         - FARGATE
 
@@ -320,7 +340,11 @@ Resources:
     Type: "AWS::ECS::TaskDefinition"
     Condition: IsNer
     Properties:
-      ExecutionRoleArn: !GetAtt ECSIAMRole.Arn
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !If
+        - IsScannerTaskRoleArnProvided
+        - !Ref ScannerTaskRoleArn
+        - !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: bigid-scanner
           Essential: true
@@ -331,6 +355,8 @@ Resources:
           Environment:
             - Name: BIGID_UI_HOST_EXT
               Value: !Sub "${BigIDHostname}"
+            - Name: LABELER_ENABLED
+              Value: !Sub "${LabelerEnabled}"
             - Name: BIGID_UI_PORT_EXT
               Value: 443
             - Name: BIGID_UI_PROTOCOL_EXT
@@ -339,13 +365,13 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - !If
               - UseProxy
               - Name: SCANNER_JAVA_OPTS
                 Value: !Sub "-Dhttp.proxyHost=${HttpProxyHost} -Dhttp.proxyPort=${HttpProxyPort} -Dhttp.nonProxyHosts=localhost -Xmx${ScannerMemory}m -Dhttps.proxyHost=${HttpsProxyHost} -Dhttps.proxyPort=${HttpsProxyPort}"
               - !Ref "AWS::NoValue"
-            - Name: BIGID_VERSION
-              Value: !Sub "${ImageTagVersion}_AWS"
             - Name: SCANNER_HOST_NAME
               Value: !Sub "bigid-scanner-${AWS::StackName}"
             - Name: SCANNER_GROUP_NAME
@@ -407,6 +433,8 @@ Resources:
               Value: true
             - Name: IS_REMOTE_SCANNER
               Value: true
+            - Name: BIGID_VERSION
+              Value: !Sub "${ImageTagVersion}_ECS"
             - Name: SCANNER_HOST_NAME
               Value: "localhost"
             - Name: SCANNER_GROUP_NAME
@@ -488,7 +516,7 @@ Resources:
             - !Ref Subnet3
       TaskDefinition: !Ref ScannerWithNerECSTaskDefinition
 
-  ECSIAMRole:
+  ECSExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       Path: "/"
@@ -501,17 +529,11 @@ Resources:
                 - ecs-tasks.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - !If
-          - ShouldAttachManagedPolicy
-          - !Ref ManagedPolicyArn
-          - !Ref "AWS::NoValue"
 
-  RolePolicies:
+  ECSExecutionRolePolicies:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: BigIDScannerTaskExecutionPolicy
+      PolicyName: BigIDScannerExecutionPolicy
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -531,7 +553,21 @@ Resources:
               ]
             Resource: "*"
       Roles:
-        - !Ref ECSIAMRole
+        - !Ref ECSExecutionRole
+  CrossAccountAssumeRolePolicy:
+    Type: AWS::IAM::Policy
+    Condition: CreateCrossAccountPermissions
+    Properties:
+      PolicyName: CrossAccountAssumeRolePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - sts:AssumeRole
+            Resource: "*"
+      Roles:
+        - !Ref ECSExecutionRole
 
   ECSScalerLambda:
     Type: "AWS::Lambda::Function"
